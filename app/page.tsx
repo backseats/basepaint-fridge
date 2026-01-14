@@ -131,15 +131,23 @@ interface PlacedMagnet {
   x: number;
   y: number;
   magnet: PaintedEvent;
+  scale: number;
 }
 
 interface CanvasTargetProps {
   borderColor: string;
   pixelData: Map<string, number>;
   placedMagnets: PlacedMagnet[];
+  isShiftHeld: boolean;
+  hoveredMagnetIndex: number | null;
+  onHoverMagnet: (index: number) => void;
+  onHoverEndMagnet: () => void;
+  onResizeMagnet: (index: number, newScale: number) => void;
+  onRepositionMagnet: (index: number, newX: number, newY: number) => void;
+  onDeleteMagnet: (index: number) => void;
 }
 
-function CanvasTarget({ borderColor, pixelData, placedMagnets }: CanvasTargetProps) {
+function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hoveredMagnetIndex, onHoverMagnet, onHoverEndMagnet, onResizeMagnet, onRepositionMagnet, onDeleteMagnet }: CanvasTargetProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { isOver, setNodeRef } = useDroppable({
@@ -184,18 +192,56 @@ function CanvasTarget({ borderColor, pixelData, placedMagnets }: CanvasTargetPro
       />
       {/* Render placed magnets on top */}
       {placedMagnets.map((placed, idx) => (
-        <PlacedMagnetBox key={idx} placed={placed} />
+        <PlacedMagnetBox
+          key={idx}
+          index={idx}
+          placed={placed}
+          isShiftHeld={isShiftHeld}
+          isHovered={hoveredMagnetIndex === idx}
+          onHover={onHoverMagnet}
+          onHoverEnd={onHoverEndMagnet}
+          onResize={(newScale) => onResizeMagnet(idx, newScale)}
+          onReposition={(newX, newY) => onRepositionMagnet(idx, newX, newY)}
+          onDelete={() => onDeleteMagnet(idx)}
+          canvasRef={canvasRef}
+        />
       ))}
     </div>
   );
 }
 
 interface PlacedMagnetBoxProps {
+  index: number;
   placed: PlacedMagnet;
+  isShiftHeld: boolean;
+  isHovered: boolean;
+  onHover: (index: number) => void;
+  onHoverEnd: () => void;
+  onResize: (newScale: number) => void;
+  onReposition: (newX: number, newY: number) => void;
+  onDelete: () => void;
+  canvasRef: React.RefObject<HTMLCanvasElement>;
 }
 
-function PlacedMagnetBox({ placed }: PlacedMagnetBoxProps) {
+function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHoverEnd, onResize, onReposition, onDelete, canvasRef: parentCanvasRef }: PlacedMagnetBoxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+  const resizeDataRef = useRef<{
+    initialScale: number;
+    initialDistance: number;
+    centerX: number;
+    centerY: number;
+  } | null>(null);
+  const dragDataRef = useRef<{
+    initialX: number;
+    initialY: number;
+    startMouseX: number;
+    startMouseY: number;
+  } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -242,20 +288,222 @@ function PlacedMagnetBox({ placed }: PlacedMagnetBoxProps) {
     });
   }, [placed.magnet]);
 
+  const handleResizeStart = (e: React.MouseEvent, corner: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const initialDistance = Math.sqrt(
+      Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2)
+    );
+
+    resizeDataRef.current = {
+      initialScale: placed.scale,
+      initialDistance,
+      centerX,
+      centerY,
+    };
+
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizeDataRef.current) return;
+
+      const { initialScale, initialDistance, centerX, centerY } = resizeDataRef.current;
+
+      const currentDistance = Math.sqrt(
+        Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2)
+      );
+
+      const scaleRatio = currentDistance / initialDistance;
+      const newScale = initialScale * scaleRatio;
+
+      onResize(newScale);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      resizeDataRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, onResize]);
+
+  // Handle dragging for repositioning
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragDataRef.current || !parentCanvasRef.current) return;
+
+      const { initialX, initialY, startMouseX, startMouseY } = dragDataRef.current;
+      const canvas = parentCanvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+
+      // Calculate mouse delta
+      const deltaX = e.clientX - startMouseX;
+      const deltaY = e.clientY - startMouseY;
+
+      // Convert delta to pixel coordinates (canvas is 256x256)
+      const pixelDeltaX = (deltaX / rect.width) * 256;
+      const pixelDeltaY = (deltaY / rect.height) * 256;
+
+      const newX = Math.max(0, Math.min(256, initialX + pixelDeltaX));
+      const newY = Math.max(0, Math.min(256, initialY + pixelDeltaY));
+
+      onReposition(newX, newY);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      dragDataRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, onReposition, parentCanvasRef]);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    if (!showContextMenu) return;
+
+    const handleClick = () => setShowContextMenu(false);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [showContextMenu]);
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (isShiftHeld) return; // Don't drag when resizing
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    dragDataRef.current = {
+      initialX: placed.x,
+      initialY: placed.y,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+    };
+
+    setIsDragging(true);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setShowContextMenu(true);
+  };
+
+  const handleDeleteClick = () => {
+    setShowContextMenu(false);
+    onDelete();
+  };
+
+  const showHandles = isShiftHeld && isHovered;
+  const baseHeight = 60;
+  const scaledHeight = baseHeight * placed.scale;
+
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute pointer-events-none"
-      style={{
-        left: `${(placed.x / 256) * 100}%`,
-        top: `${(placed.y / 256) * 100}%`,
-        height: '60px',
-        imageRendering: 'pixelated',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 10,
-      }}
-      title={`Token #${placed.magnet.tokenId}`}
-    />
+    <>
+      <div
+        ref={containerRef}
+        className="absolute"
+        style={{
+          left: `${(placed.x / 256) * 100}%`,
+          top: `${(placed.y / 256) * 100}%`,
+          transform: 'translate(-50%, -50%)',
+          zIndex: 10,
+          pointerEvents: 'auto',
+          cursor: isDragging ? 'grabbing' : isShiftHeld ? 'default' : 'grab',
+        }}
+        onMouseEnter={() => onHover(index)}
+        onMouseLeave={onHoverEnd}
+        onMouseDown={handleDragStart}
+        onContextMenu={handleContextMenu}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{
+            height: `${scaledHeight}px`,
+            imageRendering: 'pixelated',
+            display: 'block',
+          }}
+          title={`Token #${placed.magnet.tokenId}`}
+        />
+
+        {/* Corner handles */}
+        {showHandles && (
+          <>
+            {/* Top-left */}
+            <div
+              className="absolute w-2 h-2 bg-white rounded-full cursor-nwse-resize"
+              style={{ left: '-4px', top: '-4px' }}
+              onMouseDown={(e) => handleResizeStart(e, 'tl')}
+            />
+            {/* Top-right */}
+            <div
+              className="absolute w-2 h-2 bg-white rounded-full cursor-nesw-resize"
+              style={{ right: '-4px', top: '-4px' }}
+              onMouseDown={(e) => handleResizeStart(e, 'tr')}
+            />
+            {/* Bottom-left */}
+            <div
+              className="absolute w-2 h-2 bg-white rounded-full cursor-nesw-resize"
+              style={{ left: '-4px', bottom: '-4px' }}
+              onMouseDown={(e) => handleResizeStart(e, 'bl')}
+            />
+            {/* Bottom-right */}
+            <div
+              className="absolute w-2 h-2 bg-white rounded-full cursor-nwse-resize"
+              style={{ right: '-4px', bottom: '-4px' }}
+              onMouseDown={(e) => handleResizeStart(e, 'br')}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Context Menu */}
+      {showContextMenu && (
+        <div
+          className="fixed bg-zinc-800 border border-zinc-700 rounded shadow-lg py-1 z-50"
+          style={{
+            left: `${contextMenuPos.x}px`,
+            top: `${contextMenuPos.y}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-white hover:bg-zinc-700 transition-colors"
+            onClick={handleDeleteClick}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -267,6 +515,8 @@ export default function Home() {
   const [placedMagnets, setPlacedMagnets] = useState<PlacedMagnet[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedMagnet, setDraggedMagnet] = useState<PaintedEvent | null>(null);
+  const [isShiftHeld, setIsShiftHeld] = useState(false);
+  const [hoveredMagnetIndex, setHoveredMagnetIndex] = useState<number | null>(null);
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -337,6 +587,39 @@ export default function Home() {
     }
   }, [isDragging]);
 
+  // Track shift key state
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setIsShiftHeld(true);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setIsShiftHeld(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const handleResizeMagnet = (index: number, newScale: number) => {
+    setPlacedMagnets(prev => prev.map((m, i) =>
+      i === index ? { ...m, scale: Math.max(0.1, newScale) } : m
+    ));
+  };
+
+  const handleRepositionMagnet = (index: number, newX: number, newY: number) => {
+    setPlacedMagnets(prev => prev.map((m, i) =>
+      i === index ? { ...m, x: newX, y: newY } : m
+    ));
+  };
+
+  const handleDeleteMagnet = (index: number) => {
+    setPlacedMagnets(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     setIsDragging(true);
     const magnetData = event.active.data.current as PaintedEvent;
@@ -381,6 +664,7 @@ export default function Home() {
             x: pixelX,
             y: pixelY,
             magnet: magnetData,
+            scale: 1,
           }]);
         }
       }
@@ -398,7 +682,18 @@ export default function Home() {
           <div className="flex gap-12 items-center justify-center">
             {/* Canvas Target */}
             <div className="flex flex-col items-center gap-4">
-              <CanvasTarget borderColor={borderColor} pixelData={pixelData} placedMagnets={placedMagnets} />
+              <CanvasTarget
+                borderColor={borderColor}
+                pixelData={pixelData}
+                placedMagnets={placedMagnets}
+                isShiftHeld={isShiftHeld}
+                hoveredMagnetIndex={hoveredMagnetIndex}
+                onHoverMagnet={setHoveredMagnetIndex}
+                onHoverEndMagnet={() => setHoveredMagnetIndex(null)}
+                onResizeMagnet={handleResizeMagnet}
+                onRepositionMagnet={handleRepositionMagnet}
+                onDeleteMagnet={handleDeleteMagnet}
+              />
             </div>
 
             {/* Magnets Grid */}
