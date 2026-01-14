@@ -696,9 +696,11 @@ export default function Home() {
 
         {/* Bottom Drawer - Magnets Grid (2 rows x N columns, horizontally scrollable) */}
         <div className="h-48 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4">
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-full">
+          <div className="grid grid-rows-2 grid-flow-col gap-4 h-full" style={{ gridAutoColumns: '120px' }}>
             {magnets.map((magnet, idx) => (
-              <MagnetPreview key={idx} event={magnet} />
+              <div key={idx} className="flex items-center justify-center">
+                <MagnetPreview event={magnet} />
+              </div>
             ))}
           </div>
         </div>
