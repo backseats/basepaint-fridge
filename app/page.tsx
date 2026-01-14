@@ -117,9 +117,12 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
     >
       <canvas
         ref={canvasRef}
-        className="h-24 border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors"
+        className="max-h-20 border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors"
         style={{
           imageRendering: 'pixelated',
+          width: 'auto',
+          height: 'auto',
+          maxWidth: '100%',
         }}
         title={`Token #${event.tokenId} - Drag to canvas`}
       />
