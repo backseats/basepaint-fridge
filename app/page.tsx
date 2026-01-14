@@ -677,33 +677,29 @@ export default function Home() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col min-h-screen bg-zinc-900 p-8">
-        <div className="max-w-6xl mx-auto w-full">
-          <div className="flex gap-12 items-center justify-center">
-            {/* Canvas Target */}
-            <div className="flex flex-col items-center gap-4">
-              <CanvasTarget
-                borderColor={borderColor}
-                pixelData={pixelData}
-                placedMagnets={placedMagnets}
-                isShiftHeld={isShiftHeld}
-                hoveredMagnetIndex={hoveredMagnetIndex}
-                onHoverMagnet={setHoveredMagnetIndex}
-                onHoverEndMagnet={() => setHoveredMagnetIndex(null)}
-                onResizeMagnet={handleResizeMagnet}
-                onRepositionMagnet={handleRepositionMagnet}
-                onDeleteMagnet={handleDeleteMagnet}
-              />
-            </div>
+      <div className="flex flex-col h-screen bg-zinc-900">
+        {/* Canvas Area - Centered */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <CanvasTarget
+            borderColor={borderColor}
+            pixelData={pixelData}
+            placedMagnets={placedMagnets}
+            isShiftHeld={isShiftHeld}
+            hoveredMagnetIndex={hoveredMagnetIndex}
+            onHoverMagnet={setHoveredMagnetIndex}
+            onHoverEndMagnet={() => setHoveredMagnetIndex(null)}
+            onResizeMagnet={handleResizeMagnet}
+            onRepositionMagnet={handleRepositionMagnet}
+            onDeleteMagnet={handleDeleteMagnet}
+          />
+        </div>
 
-            {/* Magnets Grid */}
-            <div className="w-96 h-[600px] overflow-y-auto bg-zinc-800 rounded-lg p-4">
-              <div className="grid grid-cols-3 gap-3">
-                {magnets.map((magnet, idx) => (
-                  <MagnetPreview key={idx} event={magnet} />
-                ))}
-              </div>
-            </div>
+        {/* Bottom Drawer - Magnets Grid (2 rows x N columns, horizontally scrollable) */}
+        <div className="h-48 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-max gap-3 h-full">
+            {magnets.map((magnet, idx) => (
+              <MagnetPreview key={idx} event={magnet} />
+            ))}
           </div>
         </div>
       </div>
