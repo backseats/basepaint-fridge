@@ -1,0 +1,92 @@
+[
+  {
+    "transactionHash": "0x320aceaa54db35aabeb1c18201fb273e2008211b364a3b7a3a9d36c3401708a0",
+    "tokenId": "2932",
+    "cyanPercentage": "50.70"
+  },
+  {
+    "transactionHash": "0x48609b152cf3692e610c8084b295ea294f8047832aa95862542b2d18cbf1731a",
+    "tokenId": "771",
+    "cyanPercentage": "30.58"
+  },
+  {
+    "transactionHash": "0x672fad9ac85afcba4290f47ba9ab282ce0909ca1937d92f33e789cc535c92480",
+    "tokenId": "3280",
+    "cyanPercentage": "40.54"
+  },
+  {
+    "transactionHash": "0x14e56c214def638fff621488918339a1a7c8b6c21ef1bf556a593b28d823d46e",
+    "tokenId": "771",
+    "cyanPercentage": "48.19"
+  },
+  {
+    "transactionHash": "0x61bbcfdf594170a22b6a7de73dca01992463e4554be33a1a5d1cc2db7984d063",
+    "tokenId": "2077",
+    "cyanPercentage": "73.22"
+  },
+  {
+    "transactionHash": "0x6fbfb9ace800acafd7c13d844bead27cb92acdacae5cbe220cfe4cb4814f5603",
+    "tokenId": "2283",
+    "cyanPercentage": "28.33"
+  },
+  {
+    "transactionHash": "0x5c8376f3fdd5a46fba6268e0ce70cc60854363810b446960e9b24d2785286b46",
+    "tokenId": "3393",
+    "cyanPercentage": "35.35"
+  },
+  {
+    "transactionHash": "0xf28bc9c9d2ab166ba1dc2c2730d866595ea15706b2b798f5fd92f4882ef9bc3f",
+    "tokenId": "3393",
+    "cyanPercentage": "58.71"
+  },
+  {
+    "transactionHash": "0x15833ed28b5d4587385cbdc98c7ee895ff8a3fdedb95355732f7b789295edb89",
+    "tokenId": "2283",
+    "cyanPercentage": "34.85"
+  },
+  {
+    "transactionHash": "0x19173e928ccfaae44b003282a8243174a97b23f60f88df3863934cd5370e2ebc",
+    "tokenId": "1505",
+    "cyanPercentage": "62.09"
+  },
+  {
+    "transactionHash": "0x958f6fc6f7474366f271941846f0cee9537daaa69311495de230e09ffa2606f2",
+    "tokenId": "2910",
+    "cyanPercentage": "60.51"
+  },
+  {
+    "transactionHash": "0x9078100165c1e624926cb1f7f38ccb6556ad43d3cc38455ecdcc964c308265ed",
+    "tokenId": "2910",
+    "cyanPercentage": "28.79"
+  },
+  {
+    "transactionHash": "0x684cd49dd3928a9c6d62cafafee56337ed5f6a050401126bf6abc5bf08e70b43",
+    "tokenId": "2325",
+    "cyanPercentage": "22.86"
+  },
+  {
+    "transactionHash": "0x2f0475833aee3bf0a427c74b94ef806740363ca409c4212fffb1159939b6e895",
+    "tokenId": "771",
+    "cyanPercentage": "43.54"
+  },
+  {
+    "transactionHash": "0xc33b68f2ea0334fff088e2b4b61b7069c0ad628b90bac84af6c9eefbed8ee243",
+    "tokenId": "1072",
+    "cyanPercentage": "39.00"
+  },
+  {
+    "transactionHash": "copy-1-e5a7bdec",
+    "tokenId": "1339",
+    "cyanPercentage": "21.94"
+  },
+  {
+    "transactionHash": "copy-2-e5a7bdec",
+    "tokenId": "1339",
+    "cyanPercentage": "55.97"
+  },
+  {
+    "transactionHash": "copy-3-e5a7bdec",
+    "tokenId": "1339",
+    "cyanPercentage": "25.26"
+  }
+]
