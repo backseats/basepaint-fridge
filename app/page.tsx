@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -11,20 +11,10 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCenter,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-interface PaintedEvent {
-  day: string;
-  tokenId: string;
-  author: string;
-  pixels: string;
-  blockNumber: string;
-  transactionHash: string;
-}
-
-// Color palette for Base Paint (indices 0-7)
+// Base Paint color palette
 const palette: { [key: number]: string } = {
   0: '#49e7ec',
   1: '#3368dc',
@@ -35,6 +25,15 @@ const palette: { [key: number]: string } = {
   6: '#ffda45',
   7: '#fff7f8',
 };
+
+interface PaintedEvent {
+  day: string;
+  tokenId: string;
+  author: string;
+  pixels: string;
+  blockNumber: string;
+  transactionHash: string;
+}
 
 interface MagnetPreviewProps {
   event: PaintedEvent;
@@ -105,19 +104,15 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
 
   const style = {
     transform: CSS.Translate.toString(transform),
-  };
-
-  const handleClick = () => {
-    console.log('Magnet clicked:', event.transactionHash);
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
     <div
       ref={setNodeRef}
-      style={isDragging ? {} : style}
+      style={style}
       {...listeners}
       {...attributes}
-      onClick={handleClick}
       className="flex-shrink-0 group relative cursor-grab active:cursor-grabbing"
     >
       <canvas
@@ -132,47 +127,26 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
   );
 }
 
-interface PlacedMagnet extends PaintedEvent {
+interface PlacedMagnet {
   x: number;
   y: number;
+  magnet: PaintedEvent;
 }
 
-export default function Home() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
-  const [events, setEvents] = useState<PaintedEvent[]>([]);
-  const [magnets, setMagnets] = useState<PaintedEvent[]>([]);
-  const [placedMagnets, setPlacedMagnets] = useState<PlacedMagnet[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedMagnet, setDraggedMagnet] = useState<PaintedEvent | null>(null);
+interface CanvasTargetProps {
+  borderColor: string;
+  pixelData: Map<string, number>;
+  placedMagnets: PlacedMagnet[];
+}
 
-  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-    id: 'canvas-drop-zone',
+function CanvasTarget({ borderColor, pixelData, placedMagnets }: CanvasTargetProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { isOver, setNodeRef } = useDroppable({
+    id: 'target',
   });
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  const loadMagnets = async () => {
-    try {
-      const response = await fetch('/api/magnets');
-      const data = await response.json();
-      setMagnets(data);
-    } catch (error) {
-      console.error('Failed to load magnets:', error);
-    }
-  };
-
   useEffect(() => {
-    loadMagnets();
-  }, []);
-
-  const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -183,82 +157,173 @@ export default function Home() {
     ctx.fillStyle = '#49e7ec';
     ctx.fillRect(0, 0, 256, 256);
 
-    // Render masked canvas (base layer with magnet pixels as cyan)
-    if (events.length > 0) {
-      const hexString = events[0].pixels;
-
-      for (let i = 0; i < hexString.length; i += 6) {
-        const xHex = hexString.slice(i, i + 2);
-        const yHex = hexString.slice(i + 2, i + 4);
-        const colorHex = hexString.slice(i + 4, i + 6);
-
-        const x = parseInt(xHex, 16);
-        const y = parseInt(yHex, 16);
-        const colorIndex = parseInt(colorHex, 16);
-
-        const color = palette[colorIndex] || '#49e7ec';
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
-
-    // Render placed magnets on top
-    placedMagnets.forEach((magnet) => {
-      const hexString = magnet.pixels;
-      const pixels: { x: number; y: number; colorIndex: number }[] = [];
-
-      // Parse all pixels and find bounding box
-      let minX = 256, minY = 256, maxX = 0, maxY = 0;
-
-      for (let i = 0; i < hexString.length; i += 6) {
-        const xHex = hexString.slice(i, i + 2);
-        const yHex = hexString.slice(i + 2, i + 4);
-        const colorHex = hexString.slice(i + 4, i + 6);
-
-        const pixelX = parseInt(xHex, 16);
-        const pixelY = parseInt(yHex, 16);
-        const colorIndex = parseInt(colorHex, 16);
-
-        pixels.push({ x: pixelX, y: pixelY, colorIndex });
-
-        minX = Math.min(minX, pixelX);
-        minY = Math.min(minY, pixelY);
-        maxX = Math.max(maxX, pixelX);
-        maxY = Math.max(maxY, pixelY);
-      }
-
-      // Render pixels relative to the bounding box and drop position
-      pixels.forEach(({ x: pixelX, y: pixelY, colorIndex }) => {
-        // Offset by the bounding box min to normalize, then add drop position
-        const finalX = magnet.x + (pixelX - minX);
-        const finalY = magnet.y + (pixelY - minY);
-
-        // Only draw if within canvas bounds
-        if (finalX >= 0 && finalX < 256 && finalY >= 0 && finalY < 256) {
-          const color = palette[colorIndex] || '#49e7ec';
-          ctx.fillStyle = color;
-          ctx.fillRect(finalX, finalY, 1, 1);
-        }
-      });
+    // Render all pixels
+    pixelData.forEach((colorIndex, coordKey) => {
+      const [x, y] = coordKey.split(',').map(Number);
+      const color = palette[colorIndex] || '#49e7ec';
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, 1, 1);
     });
-  }, [events, placedMagnets]);
+  }, [pixelData]);
+
+  return (
+    <div ref={setNodeRef} className="relative" style={{ width: '500px', height: '500px' }}>
+      <canvas
+        ref={canvasRef}
+        width={256}
+        height={256}
+        className={`transition-all border-4 ${
+          isOver ? 'scale-105 shadow-2xl' : ''
+        }`}
+        style={{
+          imageRendering: 'pixelated',
+          width: '500px',
+          height: '500px',
+          borderColor: borderColor,
+        }}
+      />
+      {/* Render placed magnets on top */}
+      {placedMagnets.map((placed, idx) => (
+        <PlacedMagnetBox key={idx} placed={placed} />
+      ))}
+    </div>
+  );
+}
+
+interface PlacedMagnetBoxProps {
+  placed: PlacedMagnet;
+}
+
+function PlacedMagnetBox({ placed }: PlacedMagnetBoxProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const loadAndRenderPixels = async () => {
-      const response = await fetch('/masked-canvas.json');
-      const data = await response.json();
-      // Store as single event with the masked pixel string
-      setEvents([{ pixels: data.pixels } as PaintedEvent]);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const hexString = placed.magnet.pixels;
+    const pixels: { x: number; y: number; color: string }[] = [];
+    let minX = 256, minY = 256, maxX = 0, maxY = 0;
+
+    for (let i = 0; i < hexString.length; i += 6) {
+      const xHex = hexString.slice(i, i + 2);
+      const yHex = hexString.slice(i + 2, i + 4);
+      const colorHex = hexString.slice(i + 4, i + 6);
+
+      const x = parseInt(xHex, 16);
+      const y = parseInt(yHex, 16);
+      const colorIndex = parseInt(colorHex, 16);
+      const color = palette[colorIndex] || '#49e7ec';
+
+      pixels.push({ x, y, color });
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+
+    const width = maxX - minX + 1;
+    const height = maxY - minY + 1;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    // Clear canvas to transparent
+    ctx.clearRect(0, 0, width, height);
+
+    // Only render the actual pixel art, no background
+    pixels.forEach(({ x, y, color }) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(x - minX, y - minY, 1, 1);
+    });
+  }, [placed.magnet]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute pointer-events-none"
+      style={{
+        left: `${(placed.x / 256) * 100}%`,
+        top: `${(placed.y / 256) * 100}%`,
+        height: '60px',
+        imageRendering: 'pixelated',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 10,
+      }}
+      title={`Token #${placed.magnet.tokenId}`}
+    />
+  );
+}
+
+export default function Home() {
+  const [borderColor, setBorderColor] = useState('#ffffff');
+  const [lastDroppedName, setLastDroppedName] = useState<string | null>(null);
+  const [pixelData, setPixelData] = useState<Map<string, number>>(new Map());
+  const [magnets, setMagnets] = useState<PaintedEvent[]>([]);
+  const [placedMagnets, setPlacedMagnets] = useState<PlacedMagnet[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedMagnet, setDraggedMagnet] = useState<PaintedEvent | null>(null);
+  const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  useEffect(() => {
+    const loadCanvas = async () => {
+      try {
+        const response = await fetch('/masked-canvas.json');
+        const data = await response.json();
+
+        // Parse the pixel string into a map
+        const hexString = data.pixels;
+        const newPixelData = new Map<string, number>();
+
+        for (let i = 0; i < hexString.length; i += 6) {
+          const xHex = hexString.slice(i, i + 2);
+          const yHex = hexString.slice(i + 2, i + 4);
+          const colorHex = hexString.slice(i + 4, i + 6);
+
+          const x = parseInt(xHex, 16);
+          const y = parseInt(yHex, 16);
+          const colorIndex = parseInt(colorHex, 16);
+
+          newPixelData.set(`${x},${y}`, colorIndex);
+        }
+
+        setPixelData(newPixelData);
+      } catch (error) {
+        console.error('Failed to load canvas:', error);
+      }
     };
 
-    loadAndRenderPixels();
+    loadCanvas();
   }, []);
 
   useEffect(() => {
-    renderCanvas();
-  }, [renderCanvas]);
+    const loadMagnets = async () => {
+      try {
+        const response = await fetch('/api/magnets');
+        const data = await response.json();
+        setMagnets(data);
+      } catch (error) {
+        console.error('Failed to load magnets:', error);
+      }
+    };
 
-  // Track mouse position globally during drag
+    loadMagnets();
+  }, []);
+
+  // Track mouse position during drag
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (isDragging) {
@@ -276,8 +341,6 @@ export default function Home() {
     setIsDragging(true);
     const magnetData = event.active.data.current as PaintedEvent;
     setDraggedMagnet(magnetData);
-
-    // Initialize mouse position from activator event
     const activator = event.activatorEvent as PointerEvent;
     if (activator) {
       mousePositionRef.current = { x: activator.clientX, y: activator.clientY };
@@ -285,69 +348,41 @@ export default function Home() {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { over } = event;
+    const { over, active } = event;
 
-    console.log('Drag ended:', { over: over?.id, hasMagnet: !!draggedMagnet, hasMousePos: !!mousePositionRef.current });
+    if (over && over.id === 'target' && mousePositionRef.current) {
+      const magnetData = active.data.current as PaintedEvent;
 
-    if (over && over.id === 'canvas-drop-zone' && draggedMagnet && mousePositionRef.current) {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        console.log('No canvas ref');
-        setIsDragging(false);
-        setDraggedMagnet(null);
-        mousePositionRef.current = null;
-        return;
-      }
+      console.log('Dropped magnet transaction hash:', magnetData.transactionHash);
 
-      const rect = canvas.getBoundingClientRect();
+      // Use first color from magnet for border (or use cyan as default)
+      setBorderColor('#3b82f6');
+      setLastDroppedName(`Token #${magnetData.tokenId}`);
 
-      // Calculate the actual rendered size with objectFit: contain
-      const containerWidth = rect.width;
-      const containerHeight = rect.height;
-      const aspectRatio = 1; // Square canvas
+      // Get canvas element from the DOM
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
 
-      let renderedWidth, renderedHeight, offsetX, offsetY;
+        // Calculate position relative to canvas
+        const canvasX = mousePositionRef.current.x - rect.left;
+        const canvasY = mousePositionRef.current.y - rect.top;
 
-      if (containerWidth / containerHeight > aspectRatio) {
-        renderedHeight = containerHeight;
-        renderedWidth = containerHeight * aspectRatio;
-        offsetX = (containerWidth - renderedWidth) / 2;
-        offsetY = 0;
-      } else {
-        renderedWidth = containerWidth;
-        renderedHeight = containerWidth / aspectRatio;
-        offsetX = 0;
-        offsetY = (containerHeight - renderedHeight) / 2;
-      }
+        // Check if within bounds
+        if (canvasX >= 0 && canvasX <= rect.width && canvasY >= 0 && canvasY <= rect.height) {
+          // Convert to pixel coordinates (canvas is 256x256)
+          const pixelX = Math.floor((canvasX / rect.width) * 256);
+          const pixelY = Math.floor((canvasY / rect.height) * 256);
 
-      // Get drop position relative to the rendered canvas
-      const canvasX = mousePositionRef.current.x - rect.left - offsetX;
-      const canvasY = mousePositionRef.current.y - rect.top - offsetY;
+          console.log('Dropped at position:', { pixelX, pixelY });
 
-      console.log('Drop position:', { canvasX, canvasY, renderedWidth, renderedHeight, rect });
-
-      // Check if drop is within the rendered canvas
-      if (canvasX >= 0 && canvasX <= renderedWidth && canvasY >= 0 && canvasY <= renderedHeight) {
-        // Convert to pixel coordinates
-        const pixelX = Math.floor((canvasX / renderedWidth) * canvas.width);
-        const pixelY = Math.floor((canvasY / renderedHeight) * canvas.height);
-
-        console.log('Placing magnet at pixel coords:', pixelX, pixelY);
-
-        // Add the magnet to placed magnets
-        const placedMagnet: PlacedMagnet = {
-          ...draggedMagnet,
-          x: pixelX,
-          y: pixelY,
-        };
-
-        setPlacedMagnets((prev) => {
-          const newMagnets = [...prev, placedMagnet];
-          console.log('Total placed magnets:', newMagnets.length);
-          return newMagnets;
-        });
-      } else {
-        console.log('Drop was outside canvas bounds');
+          // Add the magnet
+          setPlacedMagnets(prev => [...prev, {
+            x: pixelX,
+            y: pixelY,
+            magnet: magnetData,
+          }]);
+        }
       }
     }
 
@@ -357,57 +392,30 @@ export default function Home() {
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex flex-col h-screen w-screen bg-zinc-900">
-        <div className="flex flex-1 min-h-0">
-          {/* Canvas side */}
-          <div
-            ref={setDroppableRef}
-            className={`flex-1 flex items-center justify-center p-4 transition-all ${
-              isOver ? 'bg-zinc-800' : ''
-            }`}
-          >
-            <canvas
-              ref={canvasRef}
-              width={256}
-              height={256}
-              className={`transition-all ${
-                isOver ? 'border-4 border-blue-500' : ''
-              }`}
-              style={{
-                imageRendering: 'pixelated',
-                width: '100%',
-                height: '100%',
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain'
-              }}
-            />
-          </div>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="flex flex-col min-h-screen bg-zinc-900 p-8">
+        <div className="max-w-6xl mx-auto w-full">
+          <div className="flex gap-12 items-center justify-center">
+            {/* Canvas Target */}
+            <div className="flex flex-col items-center gap-4">
+              <CanvasTarget borderColor={borderColor} pixelData={pixelData} placedMagnets={placedMagnets} />
+            </div>
 
-          {/* Sidebar - Saved Magnets */}
-          <div className="w-80 bg-zinc-800 p-4 overflow-auto flex-shrink-0">
-            {magnets.length === 0 ? (
-              <p className="text-zinc-400 text-sm">No magnets saved yet</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {magnets.slice().reverse().map((magnet, idx) => (
-                  <MagnetPreview key={idx} event={magnet} isDragging={isDragging && draggedMagnet?.transactionHash === magnet.transactionHash} />
+            {/* Magnets Grid */}
+            <div className="w-96 h-[600px] overflow-y-auto bg-zinc-800 rounded-lg p-4">
+              <div className="grid grid-cols-3 gap-3">
+                {magnets.map((magnet, idx) => (
+                  <MagnetPreview key={idx} event={magnet} />
                 ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
 
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={null} style={{ zIndex: 1000 }}>
         {isDragging && draggedMagnet ? (
-          <div className="opacity-90 shadow-xl transform scale-105">
+          <div className="opacity-90">
             <MagnetPreview event={draggedMagnet} isDragging={true} />
           </div>
         ) : null}
