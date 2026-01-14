@@ -117,7 +117,7 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
     >
       <canvas
         ref={canvasRef}
-        className="max-h-20 border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors"
+        className="max-h-28 border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors"
         style={{
           imageRendering: 'pixelated',
           width: 'auto',
@@ -698,8 +698,8 @@ export default function Home() {
         </div>
 
         {/* Bottom Drawer - Magnets Grid (2 rows x N columns, horizontally scrollable) */}
-        <div className="h-52 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4">
-          <div className="grid grid-flow-col gap-4 h-full" style={{ gridTemplateRows: '1fr 1fr', gridAutoColumns: '120px' }}>
+        <div className="h-64 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4">
+          <div className="grid grid-flow-col gap-4 h-full" style={{ gridTemplateRows: '1fr 1fr', gridAutoColumns: '140px' }}>
             {magnets.map((magnet, idx) => (
               <div key={idx} className="flex items-center justify-center">
                 <MagnetPreview event={magnet} />
