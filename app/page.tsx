@@ -223,7 +223,7 @@ interface PlacedMagnetBoxProps {
   onResize: (newScale: number) => void;
   onReposition: (newX: number, newY: number) => void;
   onDelete: () => void;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
 function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHoverEnd, onResize, onReposition, onDelete, canvasRef: parentCanvasRef }: PlacedMagnetBoxProps) {
