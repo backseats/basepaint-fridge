@@ -9,6 +9,7 @@ import {
   useDraggable,
   useDroppable,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -113,16 +114,14 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
       style={style}
       {...listeners}
       {...attributes}
-      className="flex-shrink-0 group relative cursor-grab active:cursor-grabbing"
+      className="flex-shrink-0 group relative cursor-grab active:cursor-grabbing touch-none"
     >
       <canvas
         ref={canvasRef}
-        className="max-h-28 border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors"
+        className="border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors h-12 md:h-[100px]"
         style={{
           imageRendering: 'pixelated',
           width: 'auto',
-          height: 'auto',
-          maxWidth: '100%',
         }}
         title={`Token #${event.tokenId} - Drag to canvas`}
       />
@@ -143,14 +142,21 @@ interface CanvasTargetProps {
   placedMagnets: PlacedMagnet[];
   isShiftHeld: boolean;
   hoveredMagnetIndex: number | null;
+  resizeButtonsIndex: number | null;
+  draggingPlacedMagnetIndex: number | null;
+  isOverTrash: boolean;
   onHoverMagnet: (index: number) => void;
   onHoverEndMagnet: () => void;
   onResizeMagnet: (index: number, newScale: number) => void;
   onRepositionMagnet: (index: number, newX: number, newY: number) => void;
   onDeleteMagnet: (index: number) => void;
+  onToggleResizeButtons: (index: number) => void;
+  onDraggingPlacedMagnet: (index: number | null, touchX?: number, touchY?: number) => void;
+  onCheckTrashHover: (touchX: number, touchY: number) => void;
+  canvasRefCallback?: (ref: HTMLCanvasElement | null) => void;
 }
 
-function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hoveredMagnetIndex, onHoverMagnet, onHoverEndMagnet, onResizeMagnet, onRepositionMagnet, onDeleteMagnet }: CanvasTargetProps) {
+function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hoveredMagnetIndex, resizeButtonsIndex, draggingPlacedMagnetIndex, isOverTrash, onHoverMagnet, onHoverEndMagnet, onResizeMagnet, onRepositionMagnet, onDeleteMagnet, onToggleResizeButtons, onDraggingPlacedMagnet, onCheckTrashHover, canvasRefCallback }: CanvasTargetProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { isOver, setNodeRef } = useDroppable({
@@ -175,21 +181,26 @@ function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hove
       ctx.fillStyle = color;
       ctx.fillRect(x, y, 1, 1);
     });
-  }, [pixelData]);
+
+    // Notify parent component of canvas ref
+    if (canvasRefCallback) {
+      canvasRefCallback(canvas);
+    }
+  }, [pixelData, canvasRefCallback]);
 
   return (
-    <div ref={setNodeRef} className="relative" style={{ width: '500px', height: '500px' }}>
+    <div ref={setNodeRef} className="relative w-full aspect-square md:w-[500px] md:h-[500px] md:aspect-auto">
       <canvas
         ref={canvasRef}
         width={256}
         height={256}
-        className={`transition-all border-4 ${
+        className={`transition-all border-0 md:border-4 ${
           isOver ? 'scale-105 shadow-2xl' : ''
         }`}
         style={{
           imageRendering: 'pixelated',
-          width: '500px',
-          height: '500px',
+          width: '100%',
+          height: '100%',
           borderColor: borderColor,
         }}
       />
@@ -201,14 +212,22 @@ function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hove
           placed={placed}
           isShiftHeld={isShiftHeld}
           isHovered={hoveredMagnetIndex === idx}
+          showResizeButtons={resizeButtonsIndex === idx}
           onHover={onHoverMagnet}
           onHoverEnd={onHoverEndMagnet}
           onResize={(newScale) => onResizeMagnet(idx, newScale)}
           onReposition={(newX, newY) => onRepositionMagnet(idx, newX, newY)}
           onDelete={() => onDeleteMagnet(idx)}
+          onToggleResizeButtons={() => onToggleResizeButtons(idx)}
+          onDraggingStart={(index) => onDraggingPlacedMagnet(index)}
+          onDraggingEnd={(index, x, y) => onDraggingPlacedMagnet(null, x, y)}
+          onCheckTrashHover={onCheckTrashHover}
           canvasRef={canvasRef}
         />
       ))}
+
+      {/* Trash Zone in bottom right of canvas */}
+      <TrashZone isDragging={draggingPlacedMagnetIndex !== null} isOver={isOverTrash} />
     </div>
   );
 }
@@ -218,21 +237,29 @@ interface PlacedMagnetBoxProps {
   placed: PlacedMagnet;
   isShiftHeld: boolean;
   isHovered: boolean;
+  showResizeButtons: boolean;
   onHover: (index: number) => void;
   onHoverEnd: () => void;
   onResize: (newScale: number) => void;
   onReposition: (newX: number, newY: number) => void;
   onDelete: () => void;
+  onToggleResizeButtons: () => void;
+  onDraggingStart: (index: number) => void;
+  onDraggingEnd: (index: number, touchX: number, touchY: number) => void;
+  onCheckTrashHover: (touchX: number, touchY: number) => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
-function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHoverEnd, onResize, onReposition, onDelete, canvasRef: parentCanvasRef }: PlacedMagnetBoxProps) {
+function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButtons, onHover, onHoverEnd, onResize, onReposition, onDelete, onToggleResizeButtons, onDraggingStart, onDraggingEnd, onCheckTrashHover, canvasRef: parentCanvasRef }: PlacedMagnetBoxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+  const [isPinching, setIsPinching] = useState(false);
+  const [touchStartTime, setTouchStartTime] = useState(0);
+  const [isTouching, setIsTouching] = useState(false);
   const resizeDataRef = useRef<{
     initialScale: number;
     initialDistance: number;
@@ -244,6 +271,10 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
     initialY: number;
     startMouseX: number;
     startMouseY: number;
+  } | null>(null);
+  const pinchDataRef = useRef<{
+    initialScale: number;
+    initialDistance: number;
   } | null>(null);
 
   useEffect(() => {
@@ -350,7 +381,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
 
   // Handle dragging for repositioning
   useEffect(() => {
-    if (!isDragging) return;
+    if (!isDragging && !isTouching) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragDataRef.current || !parentCanvasRef.current) return;
@@ -373,19 +404,63 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
       onReposition(newX, newY);
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!dragDataRef.current || !parentCanvasRef.current || e.touches.length !== 1) return;
+
+      const { initialX, initialY, startMouseX, startMouseY } = dragDataRef.current;
+      const canvas = parentCanvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - startMouseX;
+      const deltaY = touch.clientY - startMouseY;
+
+      // Start dragging if moved more than threshold and not already dragging
+      if (!isDragging) {
+        const distanceMoved = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        if (distanceMoved > 10) {
+          setIsDragging(true);
+          onDraggingStart(index);
+        } else {
+          return; // Don't reposition until threshold is met
+        }
+      }
+
+      const pixelDeltaX = (deltaX / rect.width) * 256;
+      const pixelDeltaY = (deltaY / rect.height) * 256;
+
+      const newX = Math.max(0, Math.min(256, initialX + pixelDeltaX));
+      const newY = Math.max(0, Math.min(256, initialY + pixelDeltaY));
+
+      onReposition(newX, newY);
+
+      // Check if over trash zone
+      onCheckTrashHover(touch.clientX, touch.clientY);
+    };
+
     const handleMouseUp = () => {
       setIsDragging(false);
       dragDataRef.current = null;
     };
 
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      setIsTouching(false);
+      dragDataRef.current = null;
+    };
+
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isDragging, onReposition, parentCanvasRef]);
+  }, [isDragging, isTouching, onReposition, parentCanvasRef, index, onDraggingStart, onCheckTrashHover]);
 
   // Close context menu on click outside
   useEffect(() => {
@@ -395,6 +470,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
     window.addEventListener('click', handleClick);
     return () => window.removeEventListener('click', handleClick);
   }, [showContextMenu]);
+
 
   const handleDragStart = (e: React.MouseEvent) => {
     if (isShiftHeld) return; // Don't drag when resizing
@@ -411,6 +487,124 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
 
     setIsDragging(true);
   };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    setTouchStartTime(Date.now());
+
+    if (e.touches.length === 2) {
+      // Two-finger pinch to zoom
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+
+      const distance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) +
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      );
+
+      pinchDataRef.current = {
+        initialScale: placed.scale,
+        initialDistance: distance,
+      };
+
+      setIsPinching(true);
+    } else if (e.touches.length === 1) {
+      // Single-finger - store initial position and mark as touching
+      const touch = e.touches[0];
+      dragDataRef.current = {
+        initialX: placed.x,
+        initialY: placed.y,
+        startMouseX: touch.clientX,
+        startMouseY: touch.clientY,
+      };
+      setIsTouching(true);
+      // Don't set isDragging yet - wait for actual movement
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchDuration = Date.now() - touchStartTime;
+
+    // Check if finger moved significantly from start position
+    let movedSignificantly = false;
+    let touchX = 0, touchY = 0;
+    if (dragDataRef.current && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      touchX = touch.clientX;
+      touchY = touch.clientY;
+      const deltaX = Math.abs(touch.clientX - dragDataRef.current.startMouseX);
+      const deltaY = Math.abs(touch.clientY - dragDataRef.current.startMouseY);
+      movedSignificantly = deltaX > 10 || deltaY > 10;
+    }
+
+    // If touch was quick (< 200ms) and didn't move much, treat as tap
+    if (touchDuration < 200 && !movedSignificantly && !isPinching) {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleResizeButtons();
+    }
+
+    // Notify parent that dragging ended with final position (only if actually dragging)
+    if (isDragging) {
+      onDraggingEnd(index, touchX, touchY);
+    }
+
+    // Clear drag data and reset states
+    setIsDragging(false);
+    setIsTouching(false);
+    dragDataRef.current = null;
+    setTouchStartTime(0);
+  };
+
+  const handleIncreaseSize = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onResize(placed.scale * 1.10);
+  };
+
+  const handleDecreaseSize = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onResize(placed.scale * 0.90);
+  };
+
+  // Handle pinch-to-zoom
+  useEffect(() => {
+    if (!isPinching) return;
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !pinchDataRef.current) return;
+
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+
+      const currentDistance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) +
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      );
+
+      const { initialScale, initialDistance } = pinchDataRef.current;
+      const scaleRatio = currentDistance / initialDistance;
+      const newScale = Math.max(0.1, initialScale * scaleRatio);
+
+      onResize(newScale);
+    };
+
+    const handleTouchEnd = () => {
+      setIsPinching(false);
+      pinchDataRef.current = null;
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isPinching, onResize]);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -433,7 +627,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
     <>
       <div
         ref={containerRef}
-        className="absolute"
+        className="absolute touch-none"
         style={{
           left: `${(placed.x / 256) * 100}%`,
           top: `${(placed.y / 256) * 100}%`,
@@ -445,6 +639,8 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
         onMouseEnter={() => onHover(index)}
         onMouseLeave={onHoverEnd}
         onMouseDown={handleDragStart}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
       >
         <canvas
@@ -486,6 +682,42 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
             />
           </>
         )}
+
+        {/* Mobile Resize Buttons */}
+        {showResizeButtons && (
+          <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 flex gap-2 md:hidden z-50 select-none">
+            <button
+              className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-lg select-none"
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleDecreaseSize(e);
+              }}
+              onClick={handleDecreaseSize}
+            >
+              −
+            </button>
+            <button
+              className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-lg select-none"
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleIncreaseSize(e);
+              }}
+              onClick={handleIncreaseSize}
+            >
+              +
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Context Menu */}
@@ -510,6 +742,88 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, onHover, onHov
   );
 }
 
+function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70"
+      onClick={onClose}
+    >
+      <div
+        className="bg-zinc-900 text-zinc-100 rounded-lg p-6 max-w-md mx-4 max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-start mb-4">
+          <h2 className="text-xl font-bold">How to Use</h2>
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-white text-3xl leading-none -mt-1 -mr-2 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4 text-sm">
+          <div>
+            <h3 className="font-semibold mb-1">Desktop</h3>
+            <ul className="list-disc list-inside space-y-1 text-zinc-300">
+              <li>Drag magnets from the bottom drawer onto the canvas</li>
+              <li>Hold Shift and scroll to resize placed magnets</li>
+              <li>Click and drag to reposition magnets</li>
+              <li>Right-click a magnet to delete it</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-1">Mobile</h3>
+            <ul className="list-disc list-inside space-y-1 text-zinc-300">
+              <li>Tap magnets in the drawer, then tap the canvas to place them</li>
+              <li>Tap a placed magnet to show resize buttons (+/-)</li>
+              <li>Drag a placed magnet to move it around</li>
+              <li>Pinch to zoom on a placed magnet to resize it</li>
+              <li>Drag a magnet to the trash icon to delete it</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TrashZone({ isDragging, isOver }: { isDragging: boolean; isOver: boolean }) {
+  const { setNodeRef } = useDroppable({
+    id: 'trash',
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-trash-zone
+      className={`absolute bottom-4 right-4 w-16 h-16 md:hidden rounded-full flex items-center justify-center transition-all ${
+        isDragging ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      } ${
+        isOver ? 'bg-zinc-600 scale-125' : isDragging ? 'bg-zinc-700 scale-100' : 'scale-50'
+      } z-0 shadow-lg`}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={2}
+        stroke="white"
+        className="w-8 h-8"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+        />
+      </svg>
+    </div>
+  );
+}
+
 export default function Home() {
   const [borderColor, setBorderColor] = useState('#ffffff');
   const [lastDroppedName, setLastDroppedName] = useState<string | null>(null);
@@ -520,13 +834,24 @@ export default function Home() {
   const [draggedMagnet, setDraggedMagnet] = useState<PaintedEvent | null>(null);
   const [isShiftHeld, setIsShiftHeld] = useState(false);
   const [hoveredMagnetIndex, setHoveredMagnetIndex] = useState<number | null>(null);
+  const [resizeButtonsIndex, setResizeButtonsIndex] = useState<number | null>(null);
+  const [draggingPlacedMagnetIndex, setDraggingPlacedMagnetIndex] = useState<number | null>(null);
+  const [isOverTrash, setIsOverTrash] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fridgeCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 8,
       },
     })
   );
@@ -576,7 +901,7 @@ export default function Home() {
     loadMagnets();
   }, []);
 
-  // Track mouse position during drag
+  // Track mouse and touch position during drag
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (isDragging) {
@@ -584,9 +909,19 @@ export default function Home() {
       }
     };
 
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (isDragging && e.touches.length > 0) {
+        mousePositionRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    };
+
     if (isDragging) {
       window.addEventListener('mousemove', handleGlobalMouseMove);
-      return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('touchmove', handleGlobalTouchMove);
+      return () => {
+        window.removeEventListener('mousemove', handleGlobalMouseMove);
+        window.removeEventListener('touchmove', handleGlobalTouchMove);
+      };
     }
   }, [isDragging]);
 
@@ -621,15 +956,162 @@ export default function Home() {
 
   const handleDeleteMagnet = (index: number) => {
     setPlacedMagnets(prev => prev.filter((_, i) => i !== index));
+    if (resizeButtonsIndex === index) {
+      setResizeButtonsIndex(null);
+    }
   };
+
+  const handleToggleResizeButtons = (index: number) => {
+    setResizeButtonsIndex(prev => prev === index ? null : index);
+  };
+
+  const handleDraggingPlacedMagnet = (index: number | null, touchX?: number, touchY?: number) => {
+    if (index === null && draggingPlacedMagnetIndex !== null && touchX !== undefined && touchY !== undefined) {
+      // Check if dropped on trash zone
+      const trashZone = document.querySelector('[data-trash-zone]');
+      if (trashZone) {
+        const rect = trashZone.getBoundingClientRect();
+        const isOverTrash = touchX >= rect.left && touchX <= rect.right &&
+                           touchY >= rect.top && touchY <= rect.bottom;
+        if (isOverTrash) {
+          handleDeleteMagnet(draggingPlacedMagnetIndex);
+        }
+      }
+      setIsOverTrash(false);
+    }
+    setDraggingPlacedMagnetIndex(index);
+  };
+
+  const handleCheckTrashHover = (touchX: number, touchY: number) => {
+    const trashZone = document.querySelector('[data-trash-zone]');
+    if (trashZone) {
+      const rect = trashZone.getBoundingClientRect();
+      const isOver = touchX >= rect.left && touchX <= rect.right &&
+                     touchY >= rect.top && touchY <= rect.bottom;
+      setIsOverTrash(isOver);
+    }
+  };
+
+  const handleCaptureScreenshot = useCallback(async () => {
+    if (!fridgeCanvasRef.current) return;
+
+    // Hide resize buttons if they're shown
+    setResizeButtonsIndex(null);
+
+    // Wait a tick for the UI to update
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Scale factor for output
+    const scaleFactor = 4;
+
+    // Create a new canvas for the composite image
+    const compositeCanvas = document.createElement('canvas');
+    compositeCanvas.width = 256 * scaleFactor;
+    compositeCanvas.height = 256 * scaleFactor;
+    const ctx = compositeCanvas.getContext('2d');
+    if (!ctx) return;
+
+    // Disable image smoothing for crisp pixel art
+    ctx.imageSmoothingEnabled = false;
+
+    // Draw the fridge background scaled up
+    ctx.drawImage(fridgeCanvasRef.current, 0, 0, 256 * scaleFactor, 256 * scaleFactor);
+
+    // Get the canvas display size to calculate proper scaling
+    const canvasDisplayRect = fridgeCanvasRef.current.getBoundingClientRect();
+    const canvasDisplayHeight = canvasDisplayRect.height;
+    const canvasLogicalHeight = 256;
+    const displayToCanvasRatio = canvasLogicalHeight / canvasDisplayHeight;
+
+    // Draw each placed magnet
+    for (const placed of placedMagnets) {
+      // Create a temporary canvas to render the magnet
+      const magnetCanvas = document.createElement('canvas');
+      const magnetCtx = magnetCanvas.getContext('2d');
+      if (!magnetCtx) continue;
+
+      // Parse magnet pixels
+      const hexString = placed.magnet.pixels;
+      const pixels: { x: number; y: number; color: string }[] = [];
+      let minX = 256, minY = 256, maxX = 0, maxY = 0;
+
+      for (let i = 0; i < hexString.length; i += 6) {
+        const xHex = hexString.slice(i, i + 2);
+        const yHex = hexString.slice(i + 2, i + 4);
+        const colorHex = hexString.slice(i + 4, i + 6);
+
+        const x = parseInt(xHex, 16);
+        const y = parseInt(yHex, 16);
+        const colorIndex = parseInt(colorHex, 16);
+        const color = palette[colorIndex] || '#49e7ec';
+
+        pixels.push({ x, y, color });
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+
+      const width = maxX - minX + 1;
+      const height = maxY - minY + 1;
+
+      magnetCanvas.width = width;
+      magnetCanvas.height = height;
+
+      // Render magnet pixels
+      pixels.forEach(({ x, y, color }) => {
+        magnetCtx.fillStyle = color;
+        magnetCtx.fillRect(x - minX, y - minY, 1, 1);
+      });
+
+      // Calculate scaled dimensions in canvas coordinates
+      // Convert display pixel size to canvas pixel size
+      const baseHeight = 60; // display pixels
+      const scaledHeightDisplay = baseHeight * placed.scale;
+      const scaledHeightCanvas = scaledHeightDisplay * displayToCanvasRatio;
+
+      // Calculate width maintaining aspect ratio
+      const aspectRatio = width / height;
+      const scaledWidthCanvas = scaledHeightCanvas * aspectRatio;
+
+      // Draw magnet onto composite canvas at its position (scaled by scaleFactor)
+      ctx.drawImage(
+        magnetCanvas,
+        (placed.x - scaledWidthCanvas / 2) * scaleFactor,
+        (placed.y - scaledHeightCanvas / 2) * scaleFactor,
+        scaledWidthCanvas * scaleFactor,
+        scaledHeightCanvas * scaleFactor
+      );
+    }
+
+    // Convert to blob and download
+    compositeCanvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fridge-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }, [placedMagnets]);
 
   const handleDragStart = (event: DragStartEvent) => {
     setIsDragging(true);
     const magnetData = event.active.data.current as PaintedEvent;
     setDraggedMagnet(magnetData);
-    const activator = event.activatorEvent as PointerEvent;
+    const activator = event.activatorEvent;
     if (activator) {
-      mousePositionRef.current = { x: activator.clientX, y: activator.clientY };
+      if ('touches' in activator && activator.touches && (activator.touches as TouchList).length > 0) {
+        // Touch event
+        const touches = activator.touches as TouchList;
+        mousePositionRef.current = { x: touches[0].clientX, y: touches[0].clientY };
+      } else if ('clientX' in activator && 'clientY' in activator) {
+        // Mouse/Pointer event
+        mousePositionRef.current = { x: activator.clientX as number, y: activator.clientY as number };
+      }
     }
   };
 
@@ -663,12 +1145,17 @@ export default function Home() {
           console.log('Dropped at position:', { pixelX, pixelY });
 
           // Add the magnet
-          setPlacedMagnets(prev => [...prev, {
-            x: pixelX,
-            y: pixelY,
-            magnet: magnetData,
-            scale: 1,
-          }]);
+          setPlacedMagnets(prev => {
+            const newMagnets = [...prev, {
+              x: pixelX,
+              y: pixelY,
+              magnet: magnetData,
+              scale: 1,
+            }];
+            // Show resize buttons for the newly placed magnet on mobile
+            setResizeButtonsIndex(newMagnets.length - 1);
+            return newMagnets;
+          });
         }
       }
     }
@@ -680,26 +1167,85 @@ export default function Home() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-screen bg-zinc-900">
-        {/* Canvas Area - Centered */}
-        <div className="flex-1 flex items-center justify-center p-8">
+        <div className="relative bg-zinc-900 overflow-hidden" style={{ height: '100vh', width: '100%' }}>
+        {/* Title */}
+        <div className="absolute top-4 left-0 right-0 text-center z-10">
+          <h1 className="text-white text-2xl font-bold">BasePaint Magnet Fridge</h1>
+        </div>
+
+        {/* Canvas Area - Square and centered on mobile, fixed size on desktop */}
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-center p-0 md:p-8 canvas-area-mobile">
           <CanvasTarget
             borderColor={borderColor}
             pixelData={pixelData}
             placedMagnets={placedMagnets}
             isShiftHeld={isShiftHeld}
             hoveredMagnetIndex={hoveredMagnetIndex}
+            resizeButtonsIndex={resizeButtonsIndex}
+            draggingPlacedMagnetIndex={draggingPlacedMagnetIndex}
+            isOverTrash={isOverTrash}
             onHoverMagnet={setHoveredMagnetIndex}
             onHoverEndMagnet={() => setHoveredMagnetIndex(null)}
             onResizeMagnet={handleResizeMagnet}
             onRepositionMagnet={handleRepositionMagnet}
             onDeleteMagnet={handleDeleteMagnet}
+            onToggleResizeButtons={handleToggleResizeButtons}
+            onDraggingPlacedMagnet={handleDraggingPlacedMagnet}
+            onCheckTrashHover={handleCheckTrashHover}
+            canvasRefCallback={(ref) => { fridgeCanvasRef.current = ref; }}
           />
         </div>
 
-        {/* Bottom Drawer - Magnets Grid (2 rows x N columns, horizontally scrollable) */}
-        <div className="h-64 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4">
-          <div className="grid grid-flow-col gap-4 h-full" style={{ gridTemplateRows: '1fr 1fr', gridAutoColumns: '140px' }}>
+        {/* Help Button - Mobile only, below canvas on the left */}
+        <button
+          onClick={() => setShowHelpModal(true)}
+          className="md:hidden absolute bottom-[calc(20vh+1.5rem+8px)] left-4 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-blue-600 transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2.5}
+            stroke="white"
+            className="w-6 h-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M12 17.25h.008v.008H12v-.008z"
+            />
+          </svg>
+        </button>
+
+        {/* Screenshot Button - below canvas on the right */}
+        <button
+          onClick={handleCaptureScreenshot}
+          className="absolute bottom-[calc(20vh+1.5rem+1rem)] md:bottom-[calc(16rem+1rem)] right-4 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-green-600 transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="white"
+            className="w-6 h-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
+            />
+          </svg>
+        </button>
+
+        {/* Bottom Drawer - 20vh on mobile, fixed height on desktop */}
+        <div className="absolute bottom-6 md:bottom-0 left-0 right-0 h-[20vh] md:h-64 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
+          <div className="grid grid-flow-col gap-6 h-full" style={{ gridTemplateRows: '1fr 1fr', gridAutoColumns: '200px' }}>
             {magnets.map((magnet, idx) => (
               <div key={idx} className="flex items-center justify-center">
                 <MagnetPreview event={magnet} />
@@ -711,11 +1257,13 @@ export default function Home() {
 
       <DragOverlay dropAnimation={null} style={{ zIndex: 1000 }}>
         {isDragging && draggedMagnet ? (
-          <div className="opacity-90">
+          <div className="opacity-90 touch-none">
             <MagnetPreview event={draggedMagnet} isDragging={true} />
           </div>
         ) : null}
       </DragOverlay>
+
+      <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
     </DndContext>
   );
 }
