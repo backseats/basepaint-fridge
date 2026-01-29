@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --tray-rows: 1;
+  --tray-height: 144px;
 }
 
 @theme inline {
@@ -35,6 +37,19 @@ body {
 
 @media (min-width: 768px) {
   .canvas-area-mobile {
-    bottom: 16rem;
+    bottom: var(--tray-height);
+  }
+
+  /* Desktop: use CSS variable for grid rows */
+  .sticker-tray-grid {
+    grid-template-rows: repeat(var(--tray-rows), 100px);
+  }
+}
+
+/* Height-based breakpoint for 2-row sticker tray on tall viewports */
+@media (min-height: 950px) {
+  :root {
+    --tray-rows: 2;
+    --tray-height: 256px;
   }
 }
