@@ -15,7 +15,8 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { XCircleIcon, CameraIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import { XCircleIcon, CameraIcon, QuestionMarkCircleIcon, ShareIcon } from '@heroicons/react/24/outline';
+import { encodeShareState, type EncodedMagnet } from '@/app/lib/shareEncoding';
 import Link from 'next/link';
 
 // BasePaint color palette
@@ -1150,6 +1151,58 @@ export default function Home() {
     }, 'image/png');
   }, [placedMagnets]);
 
+  const handleShare = useCallback(async () => {
+    if (placedMagnets.length === 0) {
+      // Nothing to share
+      return;
+    }
+
+    // Convert placed magnets to encoded format
+    const encodedMagnets: EncodedMagnet[] = placedMagnets.map((placed) => {
+      // Find the index of this magnet in the magnets array
+      const magnetIndex = magnets.findIndex(
+        (m) => m.transactionHash === placed.magnet.transactionHash
+      );
+
+      return {
+        magnetIndex: magnetIndex >= 0 ? magnetIndex : 0,
+        x: Math.round(placed.x),
+        y: Math.round(placed.y),
+        scale: placed.scale,
+      };
+    });
+
+    // Generate the share URL
+    const baseUrl = window.location.origin;
+    const encoded = encodeShareState(encodedMagnets);
+    const shareUrl = `${baseUrl}/share?s=${encoded}`;
+
+    // Try to use Farcaster SDK to compose a cast
+    try {
+      const isInMiniApp = await sdk.isInMiniApp();
+      if (isInMiniApp) {
+        await sdk.actions.composeCast({
+          text: 'Check out what I made on BasePaint Fridge! 🧲',
+          embeds: [shareUrl],
+        });
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Share link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Share link copied to clipboard!');
+      } catch {
+        // Last resort: show the URL
+        alert(`Share this link: ${shareUrl}`);
+      }
+    }
+  }, [placedMagnets, magnets]);
+
   const handleDragStart = (event: DragStartEvent) => {
     setIsDragging(true);
     const magnetData = event.active.data.current as PaintedEvent;
@@ -1262,6 +1315,15 @@ export default function Home() {
           className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(var(--tray-height)+1rem)] left-4 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-blue-600 transition-colors"
         >
           <QuestionMarkCircleIcon className="w-6 h-6 text-white" />
+        </button>
+
+        {/* Share Button - below canvas */}
+        <button
+          onClick={handleShare}
+          disabled={placedMagnets.length === 0}
+          className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(var(--tray-height)+1rem)] right-20 w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ShareIcon className="w-6 h-6 text-white" />
         </button>
 
         {/* Screenshot Button - below canvas on the right */}
