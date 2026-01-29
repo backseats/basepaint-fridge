@@ -53,3 +53,28 @@ body {
     --tray-height: 256px;
   }
 }
+
+/* Bottom drawer with safe area support */
+.bottom-drawer {
+  bottom: env(safe-area-inset-bottom);
+  height: calc(12vh + env(safe-area-inset-bottom));
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .bottom-drawer {
+    height: calc(var(--tray-height) + env(safe-area-inset-bottom));
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Floating action buttons with safe area support */
+.floating-action-button {
+  bottom: calc(12vh + 1rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .floating-action-button {
+    bottom: calc(var(--tray-height) + 1rem + env(safe-area-inset-bottom));
+  }
+}
