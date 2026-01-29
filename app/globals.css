@@ -26,7 +26,7 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   overflow: hidden;
-  height: 100vh;
+  height: 100dvh;
   position: fixed;
   width: 100%;
 }
@@ -54,23 +54,24 @@ body {
   }
 }
 
-/* Bottom drawer with safe area support */
+/* Bottom drawer with safe area support and browser UI offset */
 .bottom-drawer {
-  bottom: env(safe-area-inset-bottom);
-  height: calc(12vh + env(safe-area-inset-bottom));
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  bottom: calc(env(safe-area-inset-bottom) + 60px);
+  height: 12vh;
+  padding-bottom: 1rem;
 }
 
 @media (min-width: 768px) {
   .bottom-drawer {
-    height: calc(var(--tray-height) + env(safe-area-inset-bottom));
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    bottom: env(safe-area-inset-bottom);
+    height: var(--tray-height);
+    padding-bottom: 1rem;
   }
 }
 
-/* Floating action buttons with safe area support */
+/* Floating action buttons with safe area support and browser UI offset */
 .floating-action-button {
-  bottom: calc(12vh + 1rem + env(safe-area-inset-bottom));
+  bottom: calc(12vh + 1rem + env(safe-area-inset-bottom) + 60px);
 }
 
 @media (min-width: 768px) {

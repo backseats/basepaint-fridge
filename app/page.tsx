@@ -1375,7 +1375,7 @@ export default function Home() {
     >
       <div
         className="relative bg-zinc-900 overflow-hidden"
-        style={{ height: "100vh", width: "100%" }}
+        style={{ height: "100dvh", width: "100%" }}
       >
         {/* Title */}
         <div
