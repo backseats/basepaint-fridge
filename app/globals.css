@@ -71,7 +71,7 @@ body {
 
 /* Floating action buttons with safe area support and browser UI offset */
 .floating-action-button {
-  bottom: calc(12vh + 1rem + env(safe-area-inset-bottom) + 60px);
+  bottom: calc(12vh + 1rem + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 768px) {
