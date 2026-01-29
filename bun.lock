@@ -8,9 +8,7 @@
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/utilities": "^3.2.2",
         "@farcaster/miniapp-sdk": "^0.2.2",
-        "@farcaster/miniapp-wagmi-connector": "^1.1.0",
         "@heroicons/react": "^2.2.0",
-        "@tanstack/react-query": "^5.90.20",
         "next": "16.1.1",
         "next-seo": "^7.0.1",
         "react": "19.2.3",
@@ -106,8 +104,6 @@
     "@farcaster/miniapp-core": ["@farcaster/miniapp-core@0.5.0", "", { "dependencies": { "@solana/web3.js": "^1.98.2", "ox": "^0.4.4", "zod": "^3.25.0" } }, "sha512-3d4rMjKrSv6z2eUHczAP00p3+0zRaoSNUgQUyLM2BLpoi43cXmXmSP5E/tX0xE5//vkBKPLRzXE+nKoMyNL5kQ=="],
 
     "@farcaster/miniapp-sdk": ["@farcaster/miniapp-sdk@0.2.2", "", { "dependencies": { "@farcaster/miniapp-core": "0.5.0", "@farcaster/quick-auth": "^0.0.6", "comlink": "^4.4.2", "eventemitter3": "^5.0.1", "ox": "^0.4.4" } }, "sha512-Z1POThw2yZL255BxZ+18hx+w6rzK47XzovSHpnKSmPFBqfIOPV5J3DuuhNe7vSQeQuMwZnYeUz8TvzxHqvvhPw=="],
-
-    "@farcaster/miniapp-wagmi-connector": ["@farcaster/miniapp-wagmi-connector@1.1.0", "", { "peerDependencies": { "@farcaster/miniapp-sdk": "^0.2.0", "@wagmi/core": "^2.14.1", "viem": "^2.21.55" } }, "sha512-gf0nDx9nNJ6hJXbFBCgiTitb0eEqBvCU/njcyTXf7ebZhT0pzOrarOod2dkeisU5Py+WWjFyOVcqmeo4G3IvDA=="],
 
     "@farcaster/quick-auth": ["@farcaster/quick-auth@0.0.6", "", { "dependencies": { "jose": "^5.2.3", "zod": "^3.25.1" }, "peerDependencies": { "typescript": "5.8.3" } }, "sha512-tiZndhpfDtEhaKlkmS5cVDuS+A/tafqZT3y9I44rC69m3beJok6e8dIH2JhxVy3EvOWTyTBnrmNn6GOOh+qK6A=="],
 
