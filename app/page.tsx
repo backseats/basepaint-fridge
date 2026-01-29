@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { sdk } from '@farcaster/miniapp-sdk';
 import {
   DndContext,
@@ -16,7 +17,7 @@ import {
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { XCircleIcon, CameraIcon, QuestionMarkCircleIcon, ShareIcon } from '@heroicons/react/24/outline';
-import { encodeShareState, type EncodedMagnet } from '@/app/lib/shareEncoding';
+import { encodeShareState, decodeShareState, type EncodedMagnet } from '@/app/lib/shareEncoding';
 import Link from 'next/link';
 
 // BasePaint color palette
@@ -865,7 +866,8 @@ function TrashZone({ isDragging, isOver }: { isDragging: boolean; isOver: boolea
   );
 }
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
   const [borderColor, setBorderColor] = useState('#ffffff');
   const [lastDroppedName, setLastDroppedName] = useState<string | null>(null);
   const [pixelData, setPixelData] = useState<Map<string, number>>(new Map());
@@ -946,6 +948,32 @@ export default function Home() {
 
     loadMagnets();
   }, []);
+
+  // Load placed magnets from URL state (for shared links)
+  useEffect(() => {
+    const stateParam = searchParams.get('s');
+    if (!stateParam || magnets.length === 0) return;
+
+    try {
+      const decoded = decodeShareState(stateParam);
+      const loadedMagnets: PlacedMagnet[] = decoded
+        .filter((d) => d.magnetIndex >= 0 && d.magnetIndex < magnets.length)
+        .map((d) => ({
+          x: d.x,
+          y: d.y,
+          scale: d.scale,
+          magnet: magnets[d.magnetIndex],
+        }));
+
+      if (loadedMagnets.length > 0) {
+        setPlacedMagnets(loadedMagnets);
+        // Clear the URL param after loading to avoid re-loading on refresh
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch (error) {
+      console.error('Failed to decode share state:', error);
+    }
+  }, [searchParams, magnets]);
 
   // Track mouse and touch position during drag
   useEffect(() => {
@@ -1176,6 +1204,13 @@ export default function Home() {
     const baseUrl = window.location.origin;
     const encoded = encodeShareState(encodedMagnets);
     const shareUrl = `${baseUrl}/share?s=${encoded}`;
+    const ogImageUrl = `${baseUrl}/api/og?s=${encoded}`;
+
+    // Log URLs for testing
+    console.log('Share URL:', shareUrl);
+    console.log('OG Image URL:', ogImageUrl);
+    console.log('Encoded state:', encoded);
+    console.log('Decoded check:', decodeShareState(encoded));
 
     // Try to use Farcaster SDK to compose a cast
     try {
@@ -1186,9 +1221,10 @@ export default function Home() {
           embeds: [shareUrl],
         });
       } else {
-        // Fallback: copy to clipboard
+        // Fallback: copy to clipboard and show OG image URL for testing
         await navigator.clipboard.writeText(shareUrl);
-        alert('Share link copied to clipboard!');
+        console.log('Test OG image by visiting:', ogImageUrl);
+        alert(`Share link copied!\n\nTest OG image:\n${ogImageUrl}`);
       }
     } catch (error) {
       console.error('Share failed:', error);
@@ -1358,5 +1394,19 @@ export default function Home() {
 
       <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
     </DndContext>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+          <div className="text-zinc-400">Loading...</div>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }
