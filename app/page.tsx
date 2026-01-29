@@ -14,6 +14,8 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { XCircleIcon, CameraIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
 
 // Base Paint color palette
 const palette: { [key: number]: string } = {
@@ -118,7 +120,7 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
     >
       <canvas
         ref={canvasRef}
-        className="border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors h-12 md:h-[100px]"
+        className="border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors h-20 md:h-[100px]"
         style={{
           imageRendering: 'pixelated',
           width: 'auto',
@@ -153,10 +155,11 @@ interface CanvasTargetProps {
   onToggleResizeButtons: (index: number) => void;
   onDraggingPlacedMagnet: (index: number | null, touchX?: number, touchY?: number) => void;
   onCheckTrashHover: (touchX: number, touchY: number) => void;
+  onClearResizeButtons: () => void;
   canvasRefCallback?: (ref: HTMLCanvasElement | null) => void;
 }
 
-function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hoveredMagnetIndex, resizeButtonsIndex, draggingPlacedMagnetIndex, isOverTrash, onHoverMagnet, onHoverEndMagnet, onResizeMagnet, onRepositionMagnet, onDeleteMagnet, onToggleResizeButtons, onDraggingPlacedMagnet, onCheckTrashHover, canvasRefCallback }: CanvasTargetProps) {
+function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hoveredMagnetIndex, resizeButtonsIndex, draggingPlacedMagnetIndex, isOverTrash, onHoverMagnet, onHoverEndMagnet, onResizeMagnet, onRepositionMagnet, onDeleteMagnet, onToggleResizeButtons, onDraggingPlacedMagnet, onCheckTrashHover, onClearResizeButtons, canvasRefCallback }: CanvasTargetProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { isOver, setNodeRef } = useDroppable({
@@ -188,8 +191,19 @@ function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hove
     }
   }, [pixelData, canvasRefCallback]);
 
+  const handleCanvasClick = (e: React.MouseEvent | React.TouchEvent) => {
+    // Only clear resize buttons on mobile when they're showing
+    if (resizeButtonsIndex !== null) {
+      onClearResizeButtons();
+    }
+  };
+
   return (
-    <div ref={setNodeRef} className="relative w-full aspect-square md:w-[500px] md:h-[500px] md:aspect-auto">
+    <div
+      ref={setNodeRef}
+      className="relative w-full aspect-square md:w-[500px] md:h-[500px] md:aspect-auto"
+      onClick={handleCanvasClick}
+    >
       <canvas
         ref={canvasRef}
         width={256}
@@ -441,6 +455,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
     const handleMouseUp = () => {
       setIsDragging(false);
       dragDataRef.current = null;
+      onDraggingEnd(null);
     };
 
     const handleTouchEnd = () => {
@@ -486,6 +501,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
     };
 
     setIsDragging(true);
+    onDraggingStart(index);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -642,6 +658,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
+        onClick={(e) => e.stopPropagation()}
       >
         <canvas
           ref={canvasRef}
@@ -685,34 +702,35 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
 
         {/* Mobile Resize Buttons */}
         {showResizeButtons && (
-          <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 flex gap-2 md:hidden z-50 select-none">
+          <div
+            className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 flex gap-2 md:hidden z-50 select-none"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-lg select-none"
-              onTouchStart={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
               onTouchEnd={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 handleDecreaseSize(e);
               }}
-              onClick={handleDecreaseSize}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDecreaseSize(e);
+              }}
             >
               −
             </button>
             <button
               className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center text-xl font-bold shadow-lg select-none"
-              onTouchStart={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
               onTouchEnd={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 handleIncreaseSize(e);
               }}
-              onClick={handleIncreaseSize}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleIncreaseSize(e);
+              }}
             >
               +
             </button>
@@ -755,34 +773,33 @@ function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-bold">How to Use</h2>
+          <h2 className="text-xl font-bold">How to Play</h2>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-white text-3xl leading-none -mt-1 -mr-2 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="text-zinc-400 hover:text-white -mt-1 -mr-2 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
-            ×
+            <XCircleIcon className="w-8 h-8" />
           </button>
         </div>
 
         <div className="space-y-4 text-sm">
-          <div>
-            <h3 className="font-semibold mb-1">Desktop</h3>
+          <div className="hidden sm:block">
             <ul className="list-disc list-inside space-y-1 text-zinc-300">
-              <li>Drag magnets from the bottom drawer onto the canvas</li>
-              <li>Hold Shift and scroll to resize placed magnets</li>
-              <li>Click and drag to reposition magnets</li>
-              <li>Right-click a magnet to delete it</li>
+              <li>Drag and drop magnets from the drawer onto the canvas</li>
+              <li>Hold Shift to resize placed magnets</li>
+              <li>Drag to reposition magnets</li>
+              <li>Right click a magnet to delete it</li>
+              <li>Click the camera to save a screenshot of your canvas to your Downloads</li>
             </ul>
           </div>
 
-          <div>
-            <h3 className="font-semibold mb-1">Mobile</h3>
+          <div className="sm:hidden">
             <ul className="list-disc list-inside space-y-1 text-zinc-300">
-              <li>Tap magnets in the drawer, then tap the canvas to place them</li>
+              <li>Drag and drop magnets from the drawer onto the canvas</li>
               <li>Tap a placed magnet to show resize buttons (+/-)</li>
               <li>Drag a placed magnet to move it around</li>
-              <li>Pinch to zoom on a placed magnet to resize it</li>
-              <li>Drag a magnet to the trash icon to delete it</li>
+              <li>Drag a magnet into the trash to delete it</li>
+              <li>Click the camera to save a screenshot of your canvas to your camera roll</li>
             </ul>
           </div>
         </div>
@@ -966,7 +983,14 @@ export default function Home() {
   };
 
   const handleDraggingPlacedMagnet = (index: number | null, touchX?: number, touchY?: number) => {
-    if (index === null && draggingPlacedMagnetIndex !== null && touchX !== undefined && touchY !== undefined) {
+    if (index !== null) {
+      // Starting to drag a placed magnet
+      // Hide resize buttons if dragging a different magnet
+      if (resizeButtonsIndex !== null && resizeButtonsIndex !== index) {
+        setResizeButtonsIndex(null);
+      }
+    } else if (index === null && draggingPlacedMagnetIndex !== null && touchX !== undefined && touchY !== undefined) {
+      // Ending drag of a placed magnet
       // Check if dropped on trash zone
       const trashZone = document.querySelector('[data-trash-zone]');
       if (trashZone) {
@@ -1102,6 +1126,12 @@ export default function Home() {
     setIsDragging(true);
     const magnetData = event.active.data.current as PaintedEvent;
     setDraggedMagnet(magnetData);
+
+    // Hide resize buttons when dragging a magnet from the drawer
+    if (resizeButtonsIndex !== null) {
+      setResizeButtonsIndex(null);
+    }
+
     const activator = event.activatorEvent;
     if (activator) {
       if ('touches' in activator && activator.touches && (activator.touches as TouchList).length > 0) {
@@ -1170,7 +1200,8 @@ export default function Home() {
         <div className="relative bg-zinc-900 overflow-hidden" style={{ height: '100vh', width: '100%' }}>
         {/* Title */}
         <div className="absolute top-4 left-0 right-0 text-center z-10">
-          <h1 className="text-white text-2xl font-bold">BasePaint Magnet Fridge</h1>
+          <h1 className="text-white text-[18px] sm:text-2xl font-bold">The BasePaint Magnet Fridge!</h1>
+          <h1 className="text-gray-400 text-[13px] sm:text-md mt-1 font-semibold">created by <Link href="https://x.com/backseats_eth" target="_blank" className="text-blue-500 hover:text-blue-600">@backseats_eth</Link></h1>
         </div>
 
         {/* Canvas Area - Square and centered on mobile, fixed size on desktop */}
@@ -1192,60 +1223,30 @@ export default function Home() {
             onToggleResizeButtons={handleToggleResizeButtons}
             onDraggingPlacedMagnet={handleDraggingPlacedMagnet}
             onCheckTrashHover={handleCheckTrashHover}
+            onClearResizeButtons={() => setResizeButtonsIndex(null)}
             canvasRefCallback={(ref) => { fridgeCanvasRef.current = ref; }}
           />
         </div>
 
-        {/* Help Button - Mobile only, below canvas on the left */}
+        {/* Help Button - below canvas on the left */}
         <button
           onClick={() => setShowHelpModal(true)}
-          className="md:hidden absolute bottom-[calc(20vh+1.5rem+8px)] left-4 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-blue-600 transition-colors"
+          className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(16rem+1rem)] left-4 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-blue-600 transition-colors"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2.5}
-            stroke="white"
-            className="w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M12 17.25h.008v.008H12v-.008z"
-            />
-          </svg>
+          <QuestionMarkCircleIcon className="w-6 h-6 text-white" />
         </button>
 
         {/* Screenshot Button - below canvas on the right */}
         <button
           onClick={handleCaptureScreenshot}
-          className="absolute bottom-[calc(20vh+1.5rem+1rem)] md:bottom-[calc(16rem+1rem)] right-4 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-green-600 transition-colors"
+          className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(16rem+1rem)] right-4 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-green-600 transition-colors"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="white"
-            className="w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
-            />
-          </svg>
+          <CameraIcon className="w-6 h-6 text-white" />
         </button>
 
-        {/* Bottom Drawer - 20vh on mobile, fixed height on desktop */}
-        <div className="absolute bottom-6 md:bottom-0 left-0 right-0 h-[20vh] md:h-64 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
-          <div className="grid grid-flow-col gap-6 h-full" style={{ gridTemplateRows: '1fr 1fr', gridAutoColumns: '200px' }}>
+        {/* Bottom Drawer - 12vh on mobile, fixed height on desktop */}
+        <div className="absolute bottom-0 left-0 right-0 h-[12vh] md:h-64 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
+          <div className="grid grid-flow-col grid-rows-1 md:grid-rows-2 gap-6 sm:gap-2 h-full" style={{ gridAutoColumns: '200px' }}>
             {magnets.map((magnet, idx) => (
               <div key={idx} className="flex items-center justify-center">
                 <MagnetPreview event={magnet} />

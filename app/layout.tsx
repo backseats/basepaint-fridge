@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "BasePaint Fridge - Interactive Pixel Art Magnet Canvas",
   description: "Create your own fridge art with BasePaint magnets. Drag, drop, resize, and arrange pixel art pieces on a virtual fridge canvas. Save and share your unique compositions.",
-  keywords: ["BasePaint", "pixel art", "NFT", "Base", "fridge magnets", "interactive art", "digital art", "blockchain art", "creative tool"],
+  keywords: ["BasePaint", "pixel art", "NFT", "Base", "coinbase", "fridge magnets", "interactive art", "digital art", "blockchain art", "creative tool"],
   authors: [{ name: "Backseats" }],
   creator: "Backseats",
   openGraph: {
