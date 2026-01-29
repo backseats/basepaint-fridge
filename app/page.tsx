@@ -1253,7 +1253,7 @@ export default function Home() {
         {/* Help Button - below canvas on the left */}
         <button
           onClick={() => setShowHelpModal(true)}
-          className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(16rem+1rem)] left-4 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-blue-600 transition-colors"
+          className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(var(--tray-height)+1rem)] left-4 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-blue-600 transition-colors"
         >
           <QuestionMarkCircleIcon className="w-6 h-6 text-white" />
         </button>
@@ -1261,14 +1261,14 @@ export default function Home() {
         {/* Screenshot Button - below canvas on the right */}
         <button
           onClick={handleCaptureScreenshot}
-          className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(16rem+1rem)] right-4 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-green-600 transition-colors"
+          className="absolute bottom-[calc(12vh+1rem)] md:bottom-[calc(var(--tray-height)+1rem)] right-4 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg z-10 hover:bg-green-600 transition-colors"
         >
           <CameraIcon className="w-6 h-6 text-white" />
         </button>
 
-        {/* Bottom Drawer - 12vh on mobile, fixed height on desktop */}
-        <div className="absolute bottom-0 left-0 right-0 h-[12vh] md:h-64 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
-          <div className="grid grid-flow-col grid-rows-1 md:grid-rows-2 gap-6 sm:gap-2 h-full" style={{ gridAutoColumns: '200px' }}>
+        {/* Bottom Drawer - 12vh on mobile, height-based rows on desktop */}
+        <div className="absolute bottom-0 left-0 right-0 h-[12vh] md:h-[var(--tray-height)] bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
+          <div className="grid grid-flow-col grid-rows-1 gap-6 sm:gap-2 h-full sticker-tray-grid" style={{ gridAutoColumns: '200px' }}>
             {magnets.map((magnet, idx) => (
               <div key={idx} className="flex items-center justify-center">
                 <MagnetPreview event={magnet} />
