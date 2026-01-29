@@ -56,7 +56,7 @@ body {
 
 /* Bottom drawer with safe area support and browser UI offset */
 .bottom-drawer {
-  bottom: calc(env(safe-area-inset-bottom) + 60px);
+  bottom: calc(env(safe-area-inset-bottom));
   height: 12vh;
   padding-bottom: 1rem;
 }
