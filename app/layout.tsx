@@ -36,20 +36,20 @@ export const metadata: Metadata = {
     title: "BasePaint Fridge - Interactive Pixel Art Magnet Canvas",
     description: "Create your own fridge art with BasePaint magnets. Drag, drop, resize, and arrange pixel art pieces on a virtual fridge canvas.",
     siteName: "BasePaint Fridge",
-    // images: [
-    //   {
-    //     url: "/og-image.png",
-    //     width: 1200,
-    //     height: 630,
-    //     alt: "BasePaint Fridge - Create pixel art compositions with fridge magnets",
-    //   },
-    // ],
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 1200,
+        alt: "BasePaint Fridge - Create pixel art compositions with fridge magnets",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "BasePaint Fridge - Interactive Pixel Art Magnet Canvas",
     description: "Create your own fridge art with BasePaint magnets. Drag, drop, resize, and arrange pixel art pieces.",
-    // images: ["/og-image.png"],
+    images: ["/og-image.png"],
     creator: "@backseats_eth",
   },
   viewport: {
