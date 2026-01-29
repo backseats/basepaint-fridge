@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -12,21 +12,25 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-} from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
-import { XCircleIcon, CameraIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
-import Link from 'next/link';
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  XCircleIcon,
+  CameraIcon,
+  QuestionMarkCircleIcon,
+} from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 // BasePaint color palette
 const palette: { [key: number]: string } = {
-  0: '#49e7ec',
-  1: '#3368dc',
-  2: '#2b0f54',
-  3: '#ab1f65',
-  4: '#ff4f69',
-  5: '#ff8142',
-  6: '#ffda45',
-  7: '#fff7f8',
+  0: "#49e7ec",
+  1: "#3368dc",
+  2: "#2b0f54",
+  3: "#ab1f65",
+  4: "#ff4f69",
+  5: "#ff8142",
+  6: "#ffda45",
+  7: "#fff7f8",
 };
 
 interface PaintedEvent {
@@ -54,13 +58,16 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // Parse all pixels to find bounding box
     const hexString = event.pixels;
     const pixels: { x: number; y: number; color: string }[] = [];
-    let minX = 256, minY = 256, maxX = 0, maxY = 0;
+    let minX = 256,
+      minY = 256,
+      maxX = 0,
+      maxY = 0;
 
     for (let i = 0; i < hexString.length; i += 6) {
       const xHex = hexString.slice(i, i + 2);
@@ -70,7 +77,7 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
       const x = parseInt(xHex, 16);
       const y = parseInt(yHex, 16);
       const colorIndex = parseInt(colorHex, 16);
-      const color = palette[colorIndex] || '#49e7ec';
+      const color = palette[colorIndex] || "#49e7ec";
 
       pixels.push({ x, y, color });
 
@@ -95,7 +102,7 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
     canvas.height = height;
 
     // Clear with cyan background
-    ctx.fillStyle = '#49e7ec';
+    ctx.fillStyle = "#49e7ec";
     ctx.fillRect(0, 0, width, height);
 
     // Render pixels relative to bounding box
@@ -122,8 +129,8 @@ function MagnetPreview({ event, isDragging = false }: MagnetPreviewProps) {
         ref={canvasRef}
         className="border-2 border-zinc-700 rounded hover:border-blue-500 transition-colors h-20 md:h-[100px]"
         style={{
-          imageRendering: 'pixelated',
-          width: 'auto',
+          imageRendering: "pixelated",
+          width: "auto",
         }}
         title={`Token #${event.tokenId} - Drag to canvas`}
       />
@@ -153,34 +160,57 @@ interface CanvasTargetProps {
   onRepositionMagnet: (index: number, newX: number, newY: number) => void;
   onDeleteMagnet: (index: number) => void;
   onToggleResizeButtons: (index: number) => void;
-  onDraggingPlacedMagnet: (index: number | null, touchX?: number, touchY?: number) => void;
+  onDraggingPlacedMagnet: (
+    index: number | null,
+    touchX?: number,
+    touchY?: number,
+  ) => void;
   onCheckTrashHover: (touchX: number, touchY: number) => void;
   onClearResizeButtons: () => void;
   canvasRefCallback?: (ref: HTMLCanvasElement | null) => void;
 }
 
-function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hoveredMagnetIndex, resizeButtonsIndex, draggingPlacedMagnetIndex, isOverTrash, onHoverMagnet, onHoverEndMagnet, onResizeMagnet, onRepositionMagnet, onDeleteMagnet, onToggleResizeButtons, onDraggingPlacedMagnet, onCheckTrashHover, onClearResizeButtons, canvasRefCallback }: CanvasTargetProps) {
+function CanvasTarget({
+  borderColor,
+  pixelData,
+  placedMagnets,
+  isShiftHeld,
+  hoveredMagnetIndex,
+  resizeButtonsIndex,
+  draggingPlacedMagnetIndex,
+  isOverTrash,
+  onHoverMagnet,
+  onHoverEndMagnet,
+  onResizeMagnet,
+  onRepositionMagnet,
+  onDeleteMagnet,
+  onToggleResizeButtons,
+  onDraggingPlacedMagnet,
+  onCheckTrashHover,
+  onClearResizeButtons,
+  canvasRefCallback,
+}: CanvasTargetProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { isOver, setNodeRef } = useDroppable({
-    id: 'target',
+    id: "target",
   });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // Clear canvas with cyan background
-    ctx.fillStyle = '#49e7ec';
+    ctx.fillStyle = "#49e7ec";
     ctx.fillRect(0, 0, 256, 256);
 
     // Render all pixels
     pixelData.forEach((colorIndex, coordKey) => {
-      const [x, y] = coordKey.split(',').map(Number);
-      const color = palette[colorIndex] || '#49e7ec';
+      const [x, y] = coordKey.split(",").map(Number);
+      const color = palette[colorIndex] || "#49e7ec";
       ctx.fillStyle = color;
       ctx.fillRect(x, y, 1, 1);
     });
@@ -209,12 +239,12 @@ function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hove
         width={256}
         height={256}
         className={`transition-all border-0 md:border-4 ${
-          isOver ? 'scale-105 shadow-2xl' : ''
+          isOver ? "scale-105 shadow-2xl" : ""
         }`}
         style={{
-          imageRendering: 'pixelated',
-          width: '100%',
-          height: '100%',
+          imageRendering: "pixelated",
+          width: "100%",
+          height: "100%",
           borderColor: borderColor,
         }}
       />
@@ -241,7 +271,10 @@ function CanvasTarget({ borderColor, pixelData, placedMagnets, isShiftHeld, hove
       ))}
 
       {/* Trash Zone in bottom right of canvas */}
-      <TrashZone isDragging={draggingPlacedMagnetIndex !== null} isOver={isOverTrash} />
+      <TrashZone
+        isDragging={draggingPlacedMagnetIndex !== null}
+        isOver={isOverTrash}
+      />
     </div>
   );
 }
@@ -264,7 +297,23 @@ interface PlacedMagnetBoxProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
-function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButtons, onHover, onHoverEnd, onResize, onReposition, onDelete, onToggleResizeButtons, onDraggingStart, onDraggingEnd, onCheckTrashHover, canvasRef: parentCanvasRef }: PlacedMagnetBoxProps) {
+function PlacedMagnetBox({
+  index,
+  placed,
+  isShiftHeld,
+  isHovered,
+  showResizeButtons,
+  onHover,
+  onHoverEnd,
+  onResize,
+  onReposition,
+  onDelete,
+  onToggleResizeButtons,
+  onDraggingStart,
+  onDraggingEnd,
+  onCheckTrashHover,
+  canvasRef: parentCanvasRef,
+}: PlacedMagnetBoxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -295,12 +344,15 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const hexString = placed.magnet.pixels;
     const pixels: { x: number; y: number; color: string }[] = [];
-    let minX = 256, minY = 256, maxX = 0, maxY = 0;
+    let minX = 256,
+      minY = 256,
+      maxX = 0,
+      maxY = 0;
 
     for (let i = 0; i < hexString.length; i += 6) {
       const xHex = hexString.slice(i, i + 2);
@@ -310,7 +362,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
       const x = parseInt(xHex, 16);
       const y = parseInt(yHex, 16);
       const colorIndex = parseInt(colorHex, 16);
-      const color = palette[colorIndex] || '#49e7ec';
+      const color = palette[colorIndex] || "#49e7ec";
 
       pixels.push({ x, y, color });
 
@@ -348,7 +400,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
     const centerY = rect.top + rect.height / 2;
 
     const initialDistance = Math.sqrt(
-      Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2)
+      Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2),
     );
 
     resizeDataRef.current = {
@@ -367,10 +419,11 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizeDataRef.current) return;
 
-      const { initialScale, initialDistance, centerX, centerY } = resizeDataRef.current;
+      const { initialScale, initialDistance, centerX, centerY } =
+        resizeDataRef.current;
 
       const currentDistance = Math.sqrt(
-        Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2)
+        Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2),
       );
 
       const scaleRatio = currentDistance / initialDistance;
@@ -384,12 +437,12 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
       resizeDataRef.current = null;
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isResizing, onResize]);
 
@@ -400,7 +453,8 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragDataRef.current || !parentCanvasRef.current) return;
 
-      const { initialX, initialY, startMouseX, startMouseY } = dragDataRef.current;
+      const { initialX, initialY, startMouseX, startMouseY } =
+        dragDataRef.current;
       const canvas = parentCanvasRef.current;
       const rect = canvas.getBoundingClientRect();
 
@@ -419,9 +473,15 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!dragDataRef.current || !parentCanvasRef.current || e.touches.length !== 1) return;
+      if (
+        !dragDataRef.current ||
+        !parentCanvasRef.current ||
+        e.touches.length !== 1
+      )
+        return;
 
-      const { initialX, initialY, startMouseX, startMouseY } = dragDataRef.current;
+      const { initialX, initialY, startMouseX, startMouseY } =
+        dragDataRef.current;
       const canvas = parentCanvasRef.current;
       const rect = canvas.getBoundingClientRect();
 
@@ -465,28 +525,35 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
       dragDataRef.current = null;
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchmove', handleTouchMove);
-    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isDragging, isTouching, onReposition, parentCanvasRef, index, onDraggingStart, onCheckTrashHover]);
+  }, [
+    isDragging,
+    isTouching,
+    onReposition,
+    parentCanvasRef,
+    index,
+    onDraggingStart,
+    onCheckTrashHover,
+  ]);
 
   // Close context menu on click outside
   useEffect(() => {
     if (!showContextMenu) return;
 
     const handleClick = () => setShowContextMenu(false);
-    window.addEventListener('click', handleClick);
-    return () => window.removeEventListener('click', handleClick);
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
   }, [showContextMenu]);
-
 
   const handleDragStart = (e: React.MouseEvent) => {
     if (isShiftHeld) return; // Don't drag when resizing
@@ -517,7 +584,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
 
       const distance = Math.sqrt(
         Math.pow(touch2.clientX - touch1.clientX, 2) +
-        Math.pow(touch2.clientY - touch1.clientY, 2)
+          Math.pow(touch2.clientY - touch1.clientY, 2),
       );
 
       pinchDataRef.current = {
@@ -545,7 +612,8 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
 
     // Check if finger moved significantly from start position
     let movedSignificantly = false;
-    let touchX = 0, touchY = 0;
+    let touchX = 0,
+      touchY = 0;
     if (dragDataRef.current && e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       touchX = touch.clientX;
@@ -577,13 +645,13 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
   const handleIncreaseSize = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onResize(placed.scale * 1.10);
+    onResize(placed.scale * 1.1);
   };
 
   const handleDecreaseSize = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onResize(placed.scale * 0.90);
+    onResize(placed.scale * 0.9);
   };
 
   // Handle pinch-to-zoom
@@ -599,7 +667,7 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
 
       const currentDistance = Math.sqrt(
         Math.pow(touch2.clientX - touch1.clientX, 2) +
-        Math.pow(touch2.clientY - touch1.clientY, 2)
+          Math.pow(touch2.clientY - touch1.clientY, 2),
       );
 
       const { initialScale, initialDistance } = pinchDataRef.current;
@@ -614,12 +682,12 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
       pinchDataRef.current = null;
     };
 
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
 
     return () => {
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
     };
   }, [isPinching, onResize]);
 
@@ -648,10 +716,10 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
         style={{
           left: `${(placed.x / 256) * 100}%`,
           top: `${(placed.y / 256) * 100}%`,
-          transform: 'translate(-50%, -50%)',
+          transform: "translate(-50%, -50%)",
           zIndex: 10,
-          pointerEvents: 'auto',
-          cursor: isDragging ? 'grabbing' : isShiftHeld ? 'default' : 'grab',
+          pointerEvents: "auto",
+          cursor: isDragging ? "grabbing" : isShiftHeld ? "default" : "grab",
         }}
         onMouseEnter={() => onHover(index)}
         onMouseLeave={onHoverEnd}
@@ -665,8 +733,8 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
           ref={canvasRef}
           style={{
             height: `${scaledHeight}px`,
-            imageRendering: 'pixelated',
-            display: 'block',
+            imageRendering: "pixelated",
+            display: "block",
           }}
           title={`Token #${placed.magnet.tokenId}`}
         />
@@ -677,26 +745,26 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
             {/* Top-left */}
             <div
               className="absolute w-2 h-2 bg-white rounded-full cursor-nwse-resize"
-              style={{ left: '-4px', top: '-4px' }}
-              onMouseDown={(e) => handleResizeStart(e, 'tl')}
+              style={{ left: "-4px", top: "-4px" }}
+              onMouseDown={(e) => handleResizeStart(e, "tl")}
             />
             {/* Top-right */}
             <div
               className="absolute w-2 h-2 bg-white rounded-full cursor-nesw-resize"
-              style={{ right: '-4px', top: '-4px' }}
-              onMouseDown={(e) => handleResizeStart(e, 'tr')}
+              style={{ right: "-4px", top: "-4px" }}
+              onMouseDown={(e) => handleResizeStart(e, "tr")}
             />
             {/* Bottom-left */}
             <div
               className="absolute w-2 h-2 bg-white rounded-full cursor-nesw-resize"
-              style={{ left: '-4px', bottom: '-4px' }}
-              onMouseDown={(e) => handleResizeStart(e, 'bl')}
+              style={{ left: "-4px", bottom: "-4px" }}
+              onMouseDown={(e) => handleResizeStart(e, "bl")}
             />
             {/* Bottom-right */}
             <div
               className="absolute w-2 h-2 bg-white rounded-full cursor-nwse-resize"
-              style={{ right: '-4px', bottom: '-4px' }}
-              onMouseDown={(e) => handleResizeStart(e, 'br')}
+              style={{ right: "-4px", bottom: "-4px" }}
+              onMouseDown={(e) => handleResizeStart(e, "br")}
             />
           </>
         )}
@@ -761,7 +829,13 @@ function PlacedMagnetBox({ index, placed, isShiftHeld, isHovered, showResizeButt
   );
 }
 
-function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function HelpModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   if (!isOpen) return null;
 
   return (
@@ -790,7 +864,10 @@ function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
               <li>Hold Shift to resize placed magnets</li>
               <li>Drag to reposition magnets</li>
               <li>Right click a magnet to delete it</li>
-              <li>Click the camera to save a screenshot of your canvas to your Downloads</li>
+              <li>
+                Click the camera to save a screenshot of your canvas to your
+                Downloads
+              </li>
             </ul>
           </div>
 
@@ -800,7 +877,10 @@ function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
               <li>Tap a placed magnet to show resize buttons (+/-)</li>
               <li>Drag a placed magnet to move it around</li>
               <li>Drag a magnet into the trash to delete it</li>
-              <li>Click the camera to save a screenshot of your canvas to your camera roll</li>
+              <li>
+                Click the camera to save a screenshot of your canvas to your
+                camera roll
+              </li>
             </ul>
           </div>
         </div>
@@ -821,7 +901,7 @@ function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
             </svg>
           </a>
         </div>
@@ -830,9 +910,15 @@ function HelpModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
   );
 }
 
-function TrashZone({ isDragging, isOver }: { isDragging: boolean; isOver: boolean }) {
+function TrashZone({
+  isDragging,
+  isOver,
+}: {
+  isDragging: boolean;
+  isOver: boolean;
+}) {
   const { setNodeRef } = useDroppable({
-    id: 'trash',
+    id: "trash",
   });
 
   return (
@@ -840,9 +926,13 @@ function TrashZone({ isDragging, isOver }: { isDragging: boolean; isOver: boolea
       ref={setNodeRef}
       data-trash-zone
       className={`absolute bottom-4 right-4 w-16 h-16 md:hidden rounded-full flex items-center justify-center transition-all ${
-        isDragging ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        isDragging ? "opacity-100" : "opacity-0 pointer-events-none"
       } ${
-        isOver ? 'bg-zinc-600 scale-125' : isDragging ? 'bg-zinc-700 scale-100' : 'scale-50'
+        isOver
+          ? "bg-zinc-600 scale-125"
+          : isDragging
+            ? "bg-zinc-700 scale-100"
+            : "scale-50"
       } z-0 shadow-lg`}
     >
       <svg
@@ -864,7 +954,7 @@ function TrashZone({ isDragging, isOver }: { isDragging: boolean; isOver: boolea
 }
 
 export default function Home() {
-  const [borderColor, setBorderColor] = useState('#ffffff');
+  const [borderColor, setBorderColor] = useState("#ffffff");
   const [lastDroppedName, setLastDroppedName] = useState<string | null>(null);
   const [pixelData, setPixelData] = useState<Map<string, number>>(new Map());
   const [magnets, setMagnets] = useState<PaintedEvent[]>([]);
@@ -872,9 +962,15 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [draggedMagnet, setDraggedMagnet] = useState<PaintedEvent | null>(null);
   const [isShiftHeld, setIsShiftHeld] = useState(false);
-  const [hoveredMagnetIndex, setHoveredMagnetIndex] = useState<number | null>(null);
-  const [resizeButtonsIndex, setResizeButtonsIndex] = useState<number | null>(null);
-  const [draggingPlacedMagnetIndex, setDraggingPlacedMagnetIndex] = useState<number | null>(null);
+  const [hoveredMagnetIndex, setHoveredMagnetIndex] = useState<number | null>(
+    null,
+  );
+  const [resizeButtonsIndex, setResizeButtonsIndex] = useState<number | null>(
+    null,
+  );
+  const [draggingPlacedMagnetIndex, setDraggingPlacedMagnetIndex] = useState<
+    number | null
+  >(null);
   const [isOverTrash, setIsOverTrash] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
@@ -892,13 +988,13 @@ export default function Home() {
         delay: 200,
         tolerance: 8,
       },
-    })
+    }),
   );
 
   useEffect(() => {
     const loadCanvas = async () => {
       try {
-        const response = await fetch('/masked-canvas.json');
+        const response = await fetch("/masked-canvas.json");
         const data = await response.json();
 
         // Parse the pixel string into a map
@@ -919,7 +1015,7 @@ export default function Home() {
 
         setPixelData(newPixelData);
       } catch (error) {
-        console.error('Failed to load canvas:', error);
+        console.error("Failed to load canvas:", error);
       }
     };
 
@@ -929,11 +1025,11 @@ export default function Home() {
   useEffect(() => {
     const loadMagnets = async () => {
       try {
-        const response = await fetch('/api/magnets');
+        const response = await fetch("/api/magnets");
         const data = await response.json();
         setMagnets(data);
       } catch (error) {
-        console.error('Failed to load magnets:', error);
+        console.error("Failed to load magnets:", error);
       }
     };
 
@@ -950,16 +1046,19 @@ export default function Home() {
 
     const handleGlobalTouchMove = (e: TouchEvent) => {
       if (isDragging && e.touches.length > 0) {
-        mousePositionRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        mousePositionRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
       }
     };
 
     if (isDragging) {
-      window.addEventListener('mousemove', handleGlobalMouseMove);
-      window.addEventListener('touchmove', handleGlobalTouchMove);
+      window.addEventListener("mousemove", handleGlobalMouseMove);
+      window.addEventListener("touchmove", handleGlobalTouchMove);
       return () => {
-        window.removeEventListener('mousemove', handleGlobalMouseMove);
-        window.removeEventListener('touchmove', handleGlobalTouchMove);
+        window.removeEventListener("mousemove", handleGlobalMouseMove);
+        window.removeEventListener("touchmove", handleGlobalTouchMove);
       };
     }
   }, [isDragging]);
@@ -967,58 +1066,76 @@ export default function Home() {
   // Track shift key state
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') setIsShiftHeld(true);
+      if (e.key === "Shift") setIsShiftHeld(true);
     };
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') setIsShiftHeld(false);
+      if (e.key === "Shift") setIsShiftHeld(false);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, []);
 
   const handleResizeMagnet = (index: number, newScale: number) => {
-    setPlacedMagnets(prev => prev.map((m, i) =>
-      i === index ? { ...m, scale: Math.max(0.1, newScale) } : m
-    ));
+    setPlacedMagnets((prev) =>
+      prev.map((m, i) =>
+        i === index ? { ...m, scale: Math.max(0.1, newScale) } : m,
+      ),
+    );
   };
 
-  const handleRepositionMagnet = (index: number, newX: number, newY: number) => {
-    setPlacedMagnets(prev => prev.map((m, i) =>
-      i === index ? { ...m, x: newX, y: newY } : m
-    ));
+  const handleRepositionMagnet = (
+    index: number,
+    newX: number,
+    newY: number,
+  ) => {
+    setPlacedMagnets((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, x: newX, y: newY } : m)),
+    );
   };
 
   const handleDeleteMagnet = (index: number) => {
-    setPlacedMagnets(prev => prev.filter((_, i) => i !== index));
+    setPlacedMagnets((prev) => prev.filter((_, i) => i !== index));
     if (resizeButtonsIndex === index) {
       setResizeButtonsIndex(null);
     }
   };
 
   const handleToggleResizeButtons = (index: number) => {
-    setResizeButtonsIndex(prev => prev === index ? null : index);
+    setResizeButtonsIndex((prev) => (prev === index ? null : index));
   };
 
-  const handleDraggingPlacedMagnet = (index: number | null, touchX?: number, touchY?: number) => {
+  const handleDraggingPlacedMagnet = (
+    index: number | null,
+    touchX?: number,
+    touchY?: number,
+  ) => {
     if (index !== null) {
       // Starting to drag a placed magnet
       // Hide resize buttons if dragging a different magnet
       if (resizeButtonsIndex !== null && resizeButtonsIndex !== index) {
         setResizeButtonsIndex(null);
       }
-    } else if (index === null && draggingPlacedMagnetIndex !== null && touchX !== undefined && touchY !== undefined) {
+    } else if (
+      index === null &&
+      draggingPlacedMagnetIndex !== null &&
+      touchX !== undefined &&
+      touchY !== undefined
+    ) {
       // Ending drag of a placed magnet
       // Check if dropped on trash zone
-      const trashZone = document.querySelector('[data-trash-zone]');
+      const trashZone = document.querySelector("[data-trash-zone]");
       if (trashZone) {
         const rect = trashZone.getBoundingClientRect();
-        const isOverTrash = touchX >= rect.left && touchX <= rect.right &&
-                           touchY >= rect.top && touchY <= rect.bottom;
+        const isOverTrash =
+          touchX >= rect.left &&
+          touchX <= rect.right &&
+          touchY >= rect.top &&
+          touchY <= rect.bottom;
         if (isOverTrash) {
           handleDeleteMagnet(draggingPlacedMagnetIndex);
         }
@@ -1029,11 +1146,14 @@ export default function Home() {
   };
 
   const handleCheckTrashHover = (touchX: number, touchY: number) => {
-    const trashZone = document.querySelector('[data-trash-zone]');
+    const trashZone = document.querySelector("[data-trash-zone]");
     if (trashZone) {
       const rect = trashZone.getBoundingClientRect();
-      const isOver = touchX >= rect.left && touchX <= rect.right &&
-                     touchY >= rect.top && touchY <= rect.bottom;
+      const isOver =
+        touchX >= rect.left &&
+        touchX <= rect.right &&
+        touchY >= rect.top &&
+        touchY <= rect.bottom;
       setIsOverTrash(isOver);
     }
   };
@@ -1045,23 +1165,29 @@ export default function Home() {
     setResizeButtonsIndex(null);
 
     // Wait a tick for the UI to update
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     // Scale factor for output
     const scaleFactor = 4;
 
     // Create a new canvas for the composite image
-    const compositeCanvas = document.createElement('canvas');
+    const compositeCanvas = document.createElement("canvas");
     compositeCanvas.width = 256 * scaleFactor;
     compositeCanvas.height = 256 * scaleFactor;
-    const ctx = compositeCanvas.getContext('2d');
+    const ctx = compositeCanvas.getContext("2d");
     if (!ctx) return;
 
     // Disable image smoothing for crisp pixel art
     ctx.imageSmoothingEnabled = false;
 
     // Draw the fridge background scaled up
-    ctx.drawImage(fridgeCanvasRef.current, 0, 0, 256 * scaleFactor, 256 * scaleFactor);
+    ctx.drawImage(
+      fridgeCanvasRef.current,
+      0,
+      0,
+      256 * scaleFactor,
+      256 * scaleFactor,
+    );
 
     // Get the canvas display size to calculate proper scaling
     const canvasDisplayRect = fridgeCanvasRef.current.getBoundingClientRect();
@@ -1072,14 +1198,17 @@ export default function Home() {
     // Draw each placed magnet
     for (const placed of placedMagnets) {
       // Create a temporary canvas to render the magnet
-      const magnetCanvas = document.createElement('canvas');
-      const magnetCtx = magnetCanvas.getContext('2d');
+      const magnetCanvas = document.createElement("canvas");
+      const magnetCtx = magnetCanvas.getContext("2d");
       if (!magnetCtx) continue;
 
       // Parse magnet pixels
       const hexString = placed.magnet.pixels;
       const pixels: { x: number; y: number; color: string }[] = [];
-      let minX = 256, minY = 256, maxX = 0, maxY = 0;
+      let minX = 256,
+        minY = 256,
+        maxX = 0,
+        maxY = 0;
 
       for (let i = 0; i < hexString.length; i += 6) {
         const xHex = hexString.slice(i, i + 2);
@@ -1089,7 +1218,7 @@ export default function Home() {
         const x = parseInt(xHex, 16);
         const y = parseInt(yHex, 16);
         const colorIndex = parseInt(colorHex, 16);
-        const color = palette[colorIndex] || '#49e7ec';
+        const color = palette[colorIndex] || "#49e7ec";
 
         pixels.push({ x, y, color });
         minX = Math.min(minX, x);
@@ -1126,7 +1255,7 @@ export default function Home() {
         (placed.x - scaledWidthCanvas / 2) * scaleFactor,
         (placed.y - scaledHeightCanvas / 2) * scaleFactor,
         scaledWidthCanvas * scaleFactor,
-        scaledHeightCanvas * scaleFactor
+        scaledHeightCanvas * scaleFactor,
       );
     }
 
@@ -1134,14 +1263,14 @@ export default function Home() {
     compositeCanvas.toBlob((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `fridge-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    }, 'image/png');
+    }, "image/png");
   }, [placedMagnets]);
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -1156,13 +1285,23 @@ export default function Home() {
 
     const activator = event.activatorEvent;
     if (activator) {
-      if ('touches' in activator && activator.touches && (activator.touches as TouchList).length > 0) {
+      if (
+        "touches" in activator &&
+        activator.touches &&
+        (activator.touches as TouchList).length > 0
+      ) {
         // Touch event
         const touches = activator.touches as TouchList;
-        mousePositionRef.current = { x: touches[0].clientX, y: touches[0].clientY };
-      } else if ('clientX' in activator && 'clientY' in activator) {
+        mousePositionRef.current = {
+          x: touches[0].clientX,
+          y: touches[0].clientY,
+        };
+      } else if ("clientX" in activator && "clientY" in activator) {
         // Mouse/Pointer event
-        mousePositionRef.current = { x: activator.clientX as number, y: activator.clientY as number };
+        mousePositionRef.current = {
+          x: activator.clientX as number,
+          y: activator.clientY as number,
+        };
       }
     }
   };
@@ -1170,17 +1309,20 @@ export default function Home() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { over, active } = event;
 
-    if (over && over.id === 'target' && mousePositionRef.current) {
+    if (over && over.id === "target" && mousePositionRef.current) {
       const magnetData = active.data.current as PaintedEvent;
 
-      console.log('Dropped magnet transaction hash:', magnetData.transactionHash);
+      // console.log(
+      //   "Dropped magnet transaction hash:",
+      //   magnetData.transactionHash,
+      // );
 
       // Use first color from magnet for border (or use cyan as default)
-      setBorderColor('#3b82f6');
+      setBorderColor("#3b82f6");
       setLastDroppedName(`Token #${magnetData.tokenId}`);
 
       // Get canvas element from the DOM
-      const canvas = document.querySelector('canvas');
+      const canvas = document.querySelector("canvas");
       if (canvas) {
         const rect = canvas.getBoundingClientRect();
 
@@ -1189,21 +1331,29 @@ export default function Home() {
         const canvasY = mousePositionRef.current.y - rect.top;
 
         // Check if within bounds
-        if (canvasX >= 0 && canvasX <= rect.width && canvasY >= 0 && canvasY <= rect.height) {
+        if (
+          canvasX >= 0 &&
+          canvasX <= rect.width &&
+          canvasY >= 0 &&
+          canvasY <= rect.height
+        ) {
           // Convert to pixel coordinates (canvas is 256x256)
           const pixelX = Math.floor((canvasX / rect.width) * 256);
           const pixelY = Math.floor((canvasY / rect.height) * 256);
 
-          console.log('Dropped at position:', { pixelX, pixelY });
+          // console.log("Dropped at position:", { pixelX, pixelY });
 
           // Add the magnet
-          setPlacedMagnets(prev => {
-            const newMagnets = [...prev, {
-              x: pixelX,
-              y: pixelY,
-              magnet: magnetData,
-              scale: 1,
-            }];
+          setPlacedMagnets((prev) => {
+            const newMagnets = [
+              ...prev,
+              {
+                x: pixelX,
+                y: pixelY,
+                magnet: magnetData,
+                scale: 1,
+              },
+            ];
             // Show resize buttons for the newly placed magnet on mobile
             setResizeButtonsIndex(newMagnets.length - 1);
             return newMagnets;
@@ -1218,12 +1368,33 @@ export default function Home() {
   };
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="relative bg-zinc-900 overflow-hidden" style={{ height: '100vh', width: '100%' }}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div
+        className="relative bg-zinc-900 overflow-hidden"
+        style={{ height: "100vh", width: "100%" }}
+      >
         {/* Title */}
-        <div className="absolute top-4 left-0 right-0 text-center z-10">
-          <h1 className="text-white text-[18px] sm:text-2xl font-bold">The BasePaint Magnet Fridge!</h1>
-          <h1 className="text-gray-400 text-[13px] sm:text-md mt-1 font-semibold">created by <Link href="https://x.com/backseats_eth" target="_blank" className="text-blue-500 hover:text-blue-600">@backseats_eth</Link></h1>
+        <div
+          className="absolute top-0 left-0 right-0 text-center z-20 py-3"
+          style={{ backgroundColor: "#18181B" }}
+        >
+          <h1 className="text-white text-[18px] sm:text-2xl font-bold">
+            The BasePaint Magnet Fridge!
+          </h1>
+          <h1 className="text-gray-400 text-[13px] sm:text-md mt-1 font-semibold">
+            created by{" "}
+            <Link
+              href="https://x.com/backseats_eth"
+              target="_blank"
+              className="text-blue-500 hover:text-blue-600"
+            >
+              @backseats_eth
+            </Link>
+          </h1>
         </div>
 
         {/* Canvas Area - Square and centered on mobile, fixed size on desktop */}
@@ -1246,7 +1417,9 @@ export default function Home() {
             onDraggingPlacedMagnet={handleDraggingPlacedMagnet}
             onCheckTrashHover={handleCheckTrashHover}
             onClearResizeButtons={() => setResizeButtonsIndex(null)}
-            canvasRefCallback={(ref) => { fridgeCanvasRef.current = ref; }}
+            canvasRefCallback={(ref) => {
+              fridgeCanvasRef.current = ref;
+            }}
           />
         </div>
 
@@ -1268,7 +1441,10 @@ export default function Home() {
 
         {/* Bottom Drawer - 12vh on mobile, height-based rows on desktop */}
         <div className="absolute bottom-0 left-0 right-0 h-[12vh] md:h-[var(--tray-height)] bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
-          <div className="grid grid-flow-col grid-rows-1 gap-6 sm:gap-2 h-full sticker-tray-grid" style={{ gridAutoColumns: '200px' }}>
+          <div
+            className="grid grid-flow-col grid-rows-1 gap-6 sm:gap-2 h-full sticker-tray-grid"
+            style={{ gridAutoColumns: "200px" }}
+          >
             {magnets.map((magnet, idx) => (
               <div key={idx} className="flex items-center justify-center">
                 <MagnetPreview event={magnet} />
@@ -1286,7 +1462,10 @@ export default function Home() {
         ) : null}
       </DragOverlay>
 
-      <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
+      <HelpModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
     </DndContext>
   );
 }
