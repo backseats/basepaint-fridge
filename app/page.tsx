@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { sdk } from '@farcaster/miniapp-sdk';
 import {
   DndContext,
   DragEndEvent,
@@ -895,6 +896,11 @@ export default function Home() {
     })
   );
 
+  // Signal to Farcaster that the miniapp is ready (hides splash screen)
+  useEffect(() => {
+    sdk.actions.ready();
+  }, []);
+
   useEffect(() => {
     const loadCanvas = async () => {
       try {
@@ -1267,14 +1273,16 @@ export default function Home() {
         </button>
 
         {/* Bottom Drawer - 12vh on mobile, height-based rows on desktop */}
-        <div className="absolute bottom-0 left-0 right-0 h-[12vh] md:h-[var(--tray-height)] bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
-          <div className="grid grid-flow-col grid-rows-1 gap-6 sm:gap-2 h-full sticker-tray-grid" style={{ gridAutoColumns: '200px' }}>
-            {magnets.map((magnet, idx) => (
-              <div key={idx} className="flex items-center justify-center">
-                <MagnetPreview event={magnet} />
-              </div>
-            ))}
+        <div className="absolute bottom-0 left-0 right-0 h-[12vh] md:h-[var(--tray-height)]">
+          <div className="absolute inset-0 bg-zinc-800 border-t border-zinc-700 overflow-x-auto overflow-y-hidden p-4 [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0">
+            <div className="flex items-center gap-5 h-full">
+              {magnets.map((magnet, idx) => (
+                <MagnetPreview key={idx} event={magnet} />
+              ))}
+            </div>
           </div>
+          {/* Scroll affordance gradient */}
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-zinc-800 to-transparent pointer-events-none z-10" />
         </div>
       </div>
 

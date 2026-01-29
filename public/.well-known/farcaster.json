@@ -1,0 +1,18 @@
+{
+  "miniapp": {
+    "version": "1",
+    "name": "BasePaint Fridge",
+    "iconUrl": "https://basepaint-fridge.vercel.app/favicon-96x96.png",
+    "homeUrl": "https://basepaint-fridge.vercel.app",
+    "imageUrl": "https://basepaint-fridge.vercel.app/og-image.png",
+    "buttonTitle": "Open Fridge",
+    "splashImageUrl": "https://basepaint-fridge.vercel.app/og-image.png",
+    "splashBackgroundColor": "#18181b"
+  },
+  "accountAssociation": {
+    "_TODO_@backseats": "Generate this at https://farcaster.xyz/~/developers/mini-apps/manifest using your Farcaster account, then replace header/payload/signature below",
+    "header": "REPLACE_ME",
+    "payload": "REPLACE_ME",
+    "signature": "REPLACE_ME"
+  }
+}

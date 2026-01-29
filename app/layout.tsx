@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,6 +69,22 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  other: {
+    'fc:frame': JSON.stringify({
+      version: 'next',
+      imageUrl: 'https://basepaint-fridge.vercel.app/og-image.png',
+      button: {
+        title: 'Open Fridge',
+        action: {
+          type: 'launch_frame',
+          name: 'BasePaint Fridge',
+          url: 'https://basepaint-fridge.vercel.app',
+          splashImageUrl: 'https://basepaint-fridge.vercel.app/og-image.png',
+          splashBackgroundColor: '#18181b',
+        },
+      },
+    }),
+  },
 };
 
 export default function RootLayout({
@@ -80,7 +97,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
