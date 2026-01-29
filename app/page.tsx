@@ -17,7 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { XCircleIcon, CameraIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
-// Base Paint color palette
+// BasePaint color palette
 const palette: { [key: number]: string } = {
   0: '#49e7ec',
   1: '#3368dc',

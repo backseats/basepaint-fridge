@@ -18,6 +18,18 @@ export const metadata: Metadata = {
   keywords: ["BasePaint", "pixel art", "NFT", "Base", "coinbase", "fridge magnets", "interactive art", "digital art", "blockchain art", "creative tool"],
   authors: [{ name: "Backseats" }],
   creator: "Backseats",
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  manifest: '/site.webmanifest',
+  appleWebApp: {
+    title: 'BasePaint Fridge',
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
