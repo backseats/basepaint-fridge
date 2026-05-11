@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  fetchCurrentBasepaintDay,
   fetchPaintedEventsForDay,
   parsePaintDay,
 } from "@/lib/basepaintEvents";
@@ -13,13 +14,16 @@ export async function GET(request: Request) {
 
   let day: bigint;
   try {
-    day = parsePaintDay(dayParam);
+    day = dayParam ? parsePaintDay(dayParam) : await fetchCurrentBasepaintDay();
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Invalid day",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to resolve BasePaint day",
       },
-      { status: 400 },
+      { status: dayParam ? 400 : 500 },
     );
   }
 

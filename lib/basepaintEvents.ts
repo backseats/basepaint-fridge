@@ -55,13 +55,32 @@ export function parsePaintDay(value: string | null | undefined) {
   return day;
 }
 
-export async function fetchPaintedEventsForDay(
-  day: bigint,
-): Promise<PaintedEventSnapshot[]> {
-  const client = createPublicClient({
+function basepaintClient() {
+  return createPublicClient({
     chain: base,
     transport: http(baseRpcUrl()),
   });
+}
+
+export async function fetchCurrentBasepaintDay() {
+  const client = basepaintClient();
+  const day = await client.readContract({
+    address: BASEPAINT_CONTRACT_ADDRESS,
+    abi: basepaintAbi,
+    functionName: "today",
+  });
+
+  if (typeof day !== "bigint") {
+    throw new Error("BasePaint today() returned an invalid day");
+  }
+
+  return day;
+}
+
+export async function fetchPaintedEventsForDay(
+  day: bigint,
+): Promise<PaintedEventSnapshot[]> {
+  const client = basepaintClient();
 
   const logs = await client.getLogs({
     address: BASEPAINT_CONTRACT_ADDRESS,

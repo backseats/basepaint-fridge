@@ -10,6 +10,7 @@ import {
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import type { Palette } from "@/lib/basepaintTheme";
 import {
   MouseEvent,
   PointerEvent,
@@ -20,7 +21,6 @@ import {
   useState,
 } from "react";
 
-type Palette = Record<number, string>;
 type PointerMode = "paint" | "erase";
 
 interface Pixel {
@@ -37,40 +37,6 @@ interface Bounds {
   width: number;
   height: number;
 }
-
-const basePalette: Palette = {
-  0: "#49e7ec",
-  1: "#3368dc",
-  2: "#2b0f54",
-  3: "#ab1f65",
-  4: "#ff4f69",
-  5: "#ff8142",
-  6: "#ffda45",
-  7: "#fff7f8",
-};
-
-const day1006Palette: Palette = {
-  0: "#1f070b",
-  1: "#39203f",
-  2: "#3d3e50",
-  3: "#4a7f7c",
-  4: "#24965f",
-  5: "#b7ba99",
-  6: "#91f8a7",
-  7: "#f7f6a6",
-  8: "#1d3c91",
-  9: "#674d9c",
-  10: "#7182bb",
-  11: "#19bdc4",
-  12: "#7f123f",
-  13: "#b9153d",
-  14: "#a94443",
-  15: "#bd8053",
-};
-
-const palettesByDay: Record<string, Palette> = {
-  "1006": day1006Palette,
-};
 
 const historyLimit = 100;
 
@@ -202,9 +168,15 @@ function downloadTextFile(contents: string, filename: string, type: string) {
 export default function PaintStudioClient({
   initialBytes,
   initialDay,
+  initialPalette,
+  initialThemeName,
+  initialPaletteError,
 }: {
   initialBytes: string;
   initialDay: string;
+  initialPalette: Palette;
+  initialThemeName: string | null;
+  initialPaletteError: string | null;
 }) {
   const [bytes] = useState(initialBytes);
   const [day] = useState(initialDay);
@@ -226,7 +198,7 @@ export default function PaintStudioClient({
 
   const pixels = useMemo(() => decodePixels(bytes), [bytes]);
   const bounds = useMemo(() => pixelBounds(pixels), [pixels]);
-  const palette = palettesByDay[day] ?? basePalette;
+  const palette = initialPalette;
   const encodedBytes = useMemo(() => encodePixels(pixelMap), [pixelMap]);
   const canUndo = undoStack.length > 0;
   const canRedo = redoStack.length > 0;
@@ -518,6 +490,16 @@ export default function PaintStudioClient({
               <div>
                 <div className="mb-2 text-xs font-semibold uppercase text-zinc-500">
                   Color
+                  {initialThemeName ? (
+                    <span className="ml-2 font-normal normal-case text-zinc-400">
+                      {initialThemeName}
+                    </span>
+                  ) : null}
+                  {initialPaletteError ? (
+                    <span className="ml-2 font-normal normal-case text-red-300">
+                      {initialPaletteError}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(palette).map(([index, color]) => {

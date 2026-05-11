@@ -8,6 +8,12 @@ import {
   PlusIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import {
+  basePalette,
+  fetchBasepaintTheme,
+  type BasepaintTheme,
+  type Palette,
+} from "@/lib/basepaintTheme";
 import Link from "next/link";
 import {
   type CSSProperties,
@@ -20,7 +26,6 @@ import {
   useState,
 } from "react";
 
-type Palette = Record<number, string>;
 type FrameMode = "tight" | "full";
 
 interface PaintedEventSnapshot {
@@ -47,40 +52,6 @@ interface PixelBounds {
   width: number;
   height: number;
 }
-
-const basePalette: Palette = {
-  0: "#49e7ec",
-  1: "#3368dc",
-  2: "#2b0f54",
-  3: "#ab1f65",
-  4: "#ff4f69",
-  5: "#ff8142",
-  6: "#ffda45",
-  7: "#fff7f8",
-};
-
-const day1006Palette: Palette = {
-  0: "#1f070b",
-  1: "#39203f",
-  2: "#3d3e50",
-  3: "#4a7f7c",
-  4: "#24965f",
-  5: "#b7ba99",
-  6: "#91f8a7",
-  7: "#f7f6a6",
-  8: "#1d3c91",
-  9: "#674d9c",
-  10: "#7182bb",
-  11: "#19bdc4",
-  12: "#7f123f",
-  13: "#b9153d",
-  14: "#a94443",
-  15: "#bd8053",
-};
-
-const palettesByDay: Record<string, Palette> = {
-  "1006": day1006Palette,
-};
 
 function decodePixels(pixelHex: string) {
   const cleanHex = pixelHex.startsWith("0x") ? pixelHex.slice(2) : pixelHex;
@@ -641,6 +612,10 @@ function DaySearchForm({
 }) {
   const [draftDay, setDraftDay] = useState(defaultDay);
 
+  useEffect(() => {
+    setDraftDay(defaultDay);
+  }, [defaultDay]);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onFetch(draftDay.trim());
@@ -679,19 +654,23 @@ function DaySearchForm({
 }
 
 export default function PaintEventsPage() {
-  const [activeDay, setActiveDay] = useState("1006");
-  const [loadingDay, setLoadingDay] = useState("1006");
+  const [activeDay, setActiveDay] = useState("");
+  const [loadingDay, setLoadingDay] = useState("current");
   const [events, setEvents] = useState<PaintedEventSnapshot[]>([]);
   const [frameMode, setFrameMode] = useState<FrameMode>("tight");
   const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(
     null,
   );
+  const [theme, setTheme] = useState<BasepaintTheme | null>(null);
+  const [palette, setPalette] = useState<Palette>(basePalette);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const palette = palettesByDay[activeDay] ?? basePalette;
-  const paletteName =
-    activeDay === "1006" ? "Day 1006 extracted palette" : "BasePaint UI fallback";
+  const paletteName = theme
+    ? `${theme.theme}${theme.proposer ? ` by ${theme.proposer}` : ""}`
+    : activeDay
+      ? `BasePaint day ${activeDay}`
+      : "BasePaint current day";
   const selectedEvent =
     selectedEventIndex === null ? null : events[selectedEventIndex] ?? null;
   const openEvent = useCallback((index: number) => {
@@ -714,25 +693,37 @@ export default function PaintEventsPage() {
     };
   }, [events]);
 
-  const fetchEvents = useCallback(async (day: string) => {
-    setLoadingDay(day);
+  const fetchEvents = useCallback(async (day?: string) => {
+    const requestedDay = day?.trim();
+
+    setLoadingDay(requestedDay || "current");
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/painted-events?day=${encodeURIComponent(day)}`);
-      const data = await response.json();
+      const paintedEventsResponse = await fetch(
+        requestedDay
+          ? `/api/painted-events?day=${encodeURIComponent(requestedDay)}`
+          : "/api/painted-events",
+      );
+      const data = await paintedEventsResponse.json();
 
-      if (!response.ok) {
+      if (!paintedEventsResponse.ok) {
         throw new Error(data.error ?? "Failed to fetch Painted events");
       }
 
+      const themeData = await fetchBasepaintTheme(data.day);
+
       setSelectedEventIndex(null);
       setActiveDay(data.day);
+      setTheme(themeData);
+      setPalette(themeData.palette);
       setEvents(data.events);
     } catch (fetchError) {
       setSelectedEventIndex(null);
       setEvents([]);
+      setTheme(null);
+      setPalette(basePalette);
       setError(
         fetchError instanceof Error
           ? fetchError.message
@@ -744,7 +735,7 @@ export default function PaintEventsPage() {
   }, []);
 
   useEffect(() => {
-    fetchEvents("1006");
+    fetchEvents();
   }, [fetchEvents]);
 
   return (
@@ -759,7 +750,7 @@ export default function PaintEventsPage() {
             </div>
 
             <DaySearchForm
-              defaultDay="1006"
+              defaultDay={activeDay}
               isLoading={isLoading}
               onFetch={fetchEvents}
             />
